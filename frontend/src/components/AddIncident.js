@@ -8,6 +8,7 @@ const AddIncident = () => {
   const [category, setCategory] = useState('');
   const [subValueOptions, setSubValueOptions] = useState([]);
   const [message, setMessage] = useState('');
+  const [formKey, setFormKey] = useState(Date.now()); // for resetting form
 
   useEffect(() => {
     if (category && subValues[category]) {
@@ -19,23 +20,27 @@ const AddIncident = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const getValueOrDash = (name) => e.target[name].value ? e.target[name].value : "-";
     const incident = {
       id: Date.now(),
       category: e.target.category.value,
       subValue: e.target.subValue.value,
-      date: e.target.date.value,
-      downTime: e.target.downTime.value,
-      downType: e.target.downType.value,
-      upTime: e.target.upTime.value,
-      escalatedPerson: e.target.escalatedPerson.value,
-      remarks: e.target.remarks.value,
+      downTimeDate: getValueOrDash("downTimeDate"),
+      upTimeDate: getValueOrDash("upTimeDate"),
+      downType: getValueOrDash("downType"),
+      escalatedPerson: getValueOrDash("escalatedPerson"),
+      remarks: getValueOrDash("remarks"),
     };
 
     try {
       const response = await axios.post('http://localhost:5000/api/incidents', incident);
-      setMessage(response.data.message);
-      e.target.reset();
+      setMessage(response.data.message || 'Incident added successfully!');
+      setFormKey(Date.now()); // reset form
       setSubValueOptions([]);
+      setCategory('');
+      // Optionally, refresh incidents in parent if callback provided
+      if (typeof window.refreshIncidents === 'function') window.refreshIncidents();
+      setTimeout(() => setMessage(''), 2500);
     } catch (error) {
       setMessage('Error: ' + error.message);
     }
@@ -44,7 +49,7 @@ const AddIncident = () => {
   return (
     <div className="container">
       <h1>Add NOC Incident</h1>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} key={formKey}>
         <div className="form-group">
           <label htmlFor="category">Category:</label>
           <select id="category" name="category" required onChange={(e) => setCategory(e.target.value)}>
@@ -66,27 +71,24 @@ const AddIncident = () => {
           </select>
         </div>
         <div className="form-group">
-          <label htmlFor="date">Date:</label>
-          <input type="date" id="date" name="date" required />
+          <label htmlFor="downTimeDate">Down Time Date & Time:</label>
+          <input type="datetime-local" id="downTimeDate" name="downTimeDate" />
         </div>
         <div className="form-group">
-          <label htmlFor="downTime">Down Time:</label>
-          <input type="time" id="downTime" name="downTime" required />
+          <label htmlFor="upTimeDate">Up Time Date & Time:</label>
+          <input type="datetime-local" id="upTimeDate" name="upTimeDate" />
         </div>
         <div className="form-group">
           <label htmlFor="downType">Down Type:</label>
-          <select id="downType" name="downType" required>
+          <select id="downType" name="downType">
             <option value="Planned">Planned Down</option>
             <option value="Unplanned">Unplanned Down</option>
+            <option value="Not Down">Not Down</option>
           </select>
         </div>
         <div className="form-group">
-          <label htmlFor="upTime">Up Time:</label>
-          <input type="time" id="upTime" name="upTime" required />
-        </div>
-        <div className="form-group">
           <label htmlFor="escalatedPerson">Escalated Person:</label>
-          <input type="text" id="escalatedPerson" name="escalatedPerson" required />
+          <input type="text" id="escalatedPerson" name="escalatedPerson" />
         </div>
         <div className="form-group">
           <label htmlFor="remarks">Remarks:</label>

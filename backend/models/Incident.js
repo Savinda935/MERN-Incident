@@ -4,10 +4,9 @@ const incidentSchema = new mongoose.Schema({
     id: { type: Number, required: true, unique: true },
     category: { type: String, required: true },
     subValue: { type: String, required: true },
-    date: { type: String, required: true },
-    downTime: { type: String, required: true },
+    downTimeDate: { type: String, required: true },
+    upTimeDate: { type: String, required: true },
     downType: { type: String, required: true },
-    upTime: { type: String, required: true },
     escalatedPerson: { type: String, required: true },
     remarks: { type: String },
 });

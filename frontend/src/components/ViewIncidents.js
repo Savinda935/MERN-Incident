@@ -34,8 +34,16 @@ const ViewIncidents = () => {
     calculateDowntimeAndAvailability();
   }, [incidents, categoryFilter, subValueFilter, downTypeFilter]);
 
+  useEffect(() => {
+    if (editModal.open && editModal.incident) {
+      if (subValues[editModal.incident.category]) {
+        setSubValueOptions(subValues[editModal.incident.category]);
+      }
+    }
+  }, [editModal]);
+
   const loadIncidents = async () => {
-    try {
+    try { 
       const response = await axios.get('http://localhost:5000/api/incidents');
       setIncidents(response.data);
       setFilteredIncidents(response.data);
@@ -51,21 +59,16 @@ const ViewIncidents = () => {
     let totalDowntime = 0;
 
     incidents.forEach((incident) => {
-      if (period === 'day' && incident.date !== today) return;
-      if (period === 'month' && incident.date.slice(0, 7) !== thisMonth) return;
+      // Use downTimeDate for filtering
+      const downDate = incident.downTimeDate ? incident.downTimeDate.slice(0, 10) : '';
+      if (period === 'day' && downDate !== today) return;
+      if (period === 'month' && downDate.slice(0, 7) !== thisMonth) return;
 
-      const downTime = new Date(`${incident.date}T${incident.downTime}:00`);
-      const upTime = new Date(`${incident.date}T${incident.upTime}:00`);
+      const downTime = incident.downTimeDate ? new Date(incident.downTimeDate) : null;
+      const upTime = incident.upTimeDate ? new Date(incident.upTimeDate) : null;
+      if (!downTime || !upTime) return;
       let downtimeMinutes = (upTime - downTime) / (1000 * 60);
-
-      if (non24x7SubValues.includes(incident.subValue)) {
-        const startOfOperatingHours = new Date(`${incident.date}T08:00:00`);
-        const endOfOperatingHours = new Date(`${incident.date}T17:00:00`);
-        if (downTime < startOfOperatingHours) downTime.setTime(startOfOperatingHours.getTime());
-        if (upTime > endOfOperatingHours) upTime.setTime(endOfOperatingHours.getTime());
-        downtimeMinutes = (upTime - downTime) / (1000 * 60);
-      }
-
+      // If you have non24x7SubValues logic, update as needed
       if (downtimeMinutes > 0) totalDowntime += downtimeMinutes;
     });
 
@@ -79,58 +82,38 @@ const ViewIncidents = () => {
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const thisMonth = now.toISOString().slice(0, 7);
 
-    const uniqueSubValues = new Set(incidents.filter((i) => i.date.slice(0, 7) === thisMonth).map((i) => i.subValue));
+    const uniqueSubValues = new Set(incidents.filter((i) => i.downTimeDate && i.downTimeDate.slice(0, 7) === thisMonth).map((i) => i.subValue));
     const subValueAvailabilities = {};
 
     uniqueSubValues.forEach((sv) => {
-      const isNon24x7 = non24x7SubValues.includes(sv);
-      const totalMinutes = isNon24x7 ? daysInMonth * 9 * 60 : daysInMonth * 24 * 60;
+      // If you have non24x7SubValues logic, update as needed
+      const totalMinutes = daysInMonth * 24 * 60;
       let totalDowntime = 0;
 
       incidents.forEach((incident) => {
-        if (incident.date.slice(0, 7) !== thisMonth || incident.subValue !== sv) return;
-        const downTime = new Date(`${incident.date}T${incident.downTime}:00`);
-        const upTime = new Date(`${incident.date}T${incident.upTime}:00`);
+        if (!incident.downTimeDate || !incident.upTimeDate || incident.downTimeDate === '-' || incident.upTimeDate === '-' || incident.subValue !== sv || incident.downTimeDate.slice(0, 7) !== thisMonth) return;
+        const downTime = new Date(incident.downTimeDate);
+        const upTime = new Date(incident.upTimeDate);
+        if (isNaN(downTime) || isNaN(upTime)) return;
         let downtimeMinutes = (upTime - downTime) / (1000 * 60);
-
-        if (isNon24x7) {
-          const startOfOperatingHours = new Date(`${incident.date}T08:00:00`);
-          const endOfOperatingHours = new Date(`${incident.date}T17:00:00`);
-          if (downTime < startOfOperatingHours) downTime.setTime(startOfOperatingHours.getTime());
-          if (upTime > endOfOperatingHours) upTime.setTime(endOfOperatingHours.getTime());
-          downtimeMinutes = (upTime - downTime) / (1000 * 60);
-        }
-
         if (downtimeMinutes > 0) totalDowntime += downtimeMinutes;
       });
 
       subValueAvailabilities[sv] = totalMinutes === 0 ? 100 : ((totalMinutes - totalDowntime) / totalMinutes * 100).toFixed(2);
     });
 
-    const count24x7 = [...uniqueSubValues].filter((sv) => !non24x7SubValues.includes(sv)).length;
-    const countNon24x7 = [...uniqueSubValues].filter((sv) => non24x7SubValues.includes(sv)).length;
-    const totalMinutes24x7 = count24x7 * daysInMonth * 24 * 60;
-    const totalMinutesNon24x7 = countNon24x7 * daysInMonth * 9 * 60;
+    // Overall availability
+    const count = [...uniqueSubValues].length;
+    const totalMinutes = count * daysInMonth * 24 * 60;
     let totalDowntime = 0;
-
     incidents.forEach((incident) => {
-      if (incident.date.slice(0, 7) !== thisMonth) return;
-      const downTime = new Date(`${incident.date}T${incident.downTime}:00`);
-      const upTime = new Date(`${incident.date}T${incident.upTime}:00`);
+      if (!incident.downTimeDate || !incident.upTimeDate || incident.downTimeDate === '-' || incident.upTimeDate === '-' || incident.downTimeDate.slice(0, 7) !== thisMonth) return;
+      const downTime = new Date(incident.downTimeDate);
+      const upTime = new Date(incident.upTimeDate);
+      if (isNaN(downTime) || isNaN(upTime)) return;
       let downtimeMinutes = (upTime - downTime) / (1000 * 60);
-
-      if (non24x7SubValues.includes(incident.subValue)) {
-        const startOfOperatingHours = new Date(`${incident.date}T08:00:00`);
-        const endOfOperatingHours = new Date(`${incident.date}T17:00:00`);
-        if (downTime < startOfOperatingHours) downTime.setTime(startOfOperatingHours.getTime());
-        if (upTime > endOfOperatingHours) upTime.setTime(endOfOperatingHours.getTime());
-        downtimeMinutes = (upTime - downTime) / (1000 * 60);
-      }
-
       if (downtimeMinutes > 0) totalDowntime += downtimeMinutes;
     });
-
-    const totalMinutes = totalMinutes24x7 + totalMinutesNon24x7;
     const overallAvailability = totalMinutes === 0 ? 100 : ((totalMinutes - totalDowntime) / totalMinutes * 100).toFixed(2);
 
     return { overall: overallAvailability, subValues: subValueAvailabilities };
@@ -167,16 +150,16 @@ const ViewIncidents = () => {
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
+    const getValueOrDash = (name) => e.target[name].value ? e.target[name].value : "-";
     const updatedIncident = {
       id: parseInt(e.target.id.value),
       category: e.target.category.value,
       subValue: e.target.subValue.value,
-      date: e.target.date.value,
-      downTime: e.target.downTime.value,
-      downType: e.target.downType.value,
-      upTime: e.target.upTime.value,
-      escalatedPerson: e.target.escalatedPerson.value,
-      remarks: e.target.remarks.value,
+      downTimeDate: getValueOrDash("downTimeDate"),
+      upTimeDate: getValueOrDash("upTimeDate"),
+      downType: getValueOrDash("downType"),
+      escalatedPerson: getValueOrDash("escalatedPerson"),
+      remarks: getValueOrDash("remarks"),
     };
 
     try {
@@ -188,6 +171,78 @@ const ViewIncidents = () => {
       alert('Error: ' + error.message);
     }
   };
+
+  function getTimeDiffInMinutes(start, end) {
+    if (!start || !end) return 0;
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    let diff = (endDate - startDate) / 60000; // in minutes
+    if (diff < 0) diff += 24 * 60; // handle overnight (shouldn't happen with datetime-local)
+    return diff;
+  }
+
+  function getSubValueDownTypeTimes(incidents, subValue) {
+    let planned = 0, unplanned = 0;
+    incidents.forEach(inc => {
+      if (inc.subValue !== subValue) return;
+      const diff = getTimeDiffInMinutes(inc.downTimeDate, inc.upTimeDate);
+      if (inc.downType === "Planned") planned += diff;
+      else if (inc.downType === "Unplanned") unplanned += diff;
+    });
+    return { planned, unplanned, total: planned + unplanned };
+  }
+
+  function getTotalDownTimeForSubValue(incidents, subValue) {
+    return incidents
+      .filter(inc => inc.subValue === subValue)
+      .reduce((sum, inc) => sum + getTimeDiffInMinutes(inc.downTimeDate, inc.upTimeDate), 0);
+  }
+
+  let plannedTime = 0;
+  let unplannedTime = 0;
+
+  incidents.forEach(inc => {
+    const diff = getTimeDiffInMinutes(inc.downTimeDate, inc.upTimeDate);
+    if (inc.downType === "Planned") plannedTime += diff;
+    else if (inc.downType === "Unplanned") unplannedTime += diff;
+  });
+
+  const totalTime = plannedTime + unplannedTime;
+  const plannedPercent = totalTime ? ((plannedTime / totalTime) * 100).toFixed(2) : 0;
+  const unplannedPercent = totalTime ? ((unplannedTime / totalTime) * 100).toFixed(2) : 0;
+
+  // Helper to format datetime as 'YYYY-MM-DD hh:mm AM/PM'
+  function formatDateTime(dtString) {
+    if (!dtString || dtString === '-') return '-';
+    const date = new Date(dtString);
+    if (isNaN(date)) return dtString;
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    let hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+    return `${year}-${month}-${day} ${hours}:${minutes} ${ampm}`;
+  }
+
+  function formatDuration(downTimeDate, upTimeDate) {
+    if (!downTimeDate || !upTimeDate || downTimeDate === '-' || upTimeDate === '-') return '-';
+    const down = new Date(downTimeDate);
+    const up = new Date(upTimeDate);
+    let diffMs = up - down;
+    if (isNaN(diffMs) || diffMs < 0) return '-';
+    const totalMinutes = Math.floor(diffMs / (1000 * 60));
+    const days = Math.floor(totalMinutes / (60 * 24));
+    const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+    const minutes = totalMinutes % 60;
+    let result = '';
+    if (days > 0) result += `${days} days `;
+    if (hours > 0) result += `${hours} hours `;
+    result += `${minutes} minutes`;
+    return result.trim();
+  }
 
   return (
     <div className="container">
@@ -211,6 +266,7 @@ const ViewIncidents = () => {
           <option value="">All Down Types</option>
           <option value="Planned">Planned Down</option>
           <option value="Unplanned">Unplanned Down</option>
+          <option value="Not Down">Not Down</option>
         </select>
         <button onClick={() => setAvailabilityModal(true)}>Availability</button>
       </div>
@@ -219,6 +275,7 @@ const ViewIncidents = () => {
         <p>Daily Downtime (Today): <span>{dailyDowntime}</span> minutes</p>
         <p>Monthly Downtime (This Month): <span>{monthlyDowntime}</span> minutes</p>
         <p>Overall Monthly Availability: <span>{overallAvailability}%</span></p>
+        <p>Total Ups (Incidents): <span>{filteredIncidents.length}</span></p>
       </div>
       <h3>Incidents</h3>
       <table>
@@ -226,10 +283,10 @@ const ViewIncidents = () => {
           <tr>
             <th>Category</th>
             <th>Sub-Value</th>
-            <th>Date</th>
-            <th>Down Time</th>
+            <th>Down Time Date & Time</th>
             <th>Down Type</th>
-            <th>Up Time</th>
+            <th>Up Time Date & Time</th>
+            <th>Days Down</th>
             <th>Escalated Person</th>
             <th>Remarks</th>
             <th>Availability (%)</th>
@@ -238,13 +295,21 @@ const ViewIncidents = () => {
         </thead>
         <tbody>
           {filteredIncidents.map((incident) => (
-            <tr key={incident.id}>
+            <tr key={incident.id}
+              style={
+                incident.downType === 'Not Down'
+                  ? { backgroundColor: '#d4edda' } // green
+                  : (incident.downTimeDate && incident.upTimeDate && incident.downTimeDate !== '-' && incident.upTimeDate !== '-')
+                    ? { backgroundColor: '#f8d7da' } // light red
+                    : {}
+              }
+            >
               <td>{incident.category}</td>
               <td>{incident.subValue}</td>
-              <td>{incident.date}</td>
-              <td>{incident.downTime}</td>
+              <td>{formatDateTime(incident.downTimeDate)}</td>
               <td>{incident.downType}</td>
-              <td>{incident.upTime}</td>
+              <td>{formatDateTime(incident.upTimeDate)}</td>
+              <td>{formatDuration(incident.downTimeDate, incident.upTimeDate)}</td>
               <td>{incident.escalatedPerson}</td>
               <td>{incident.remarks || ''}</td>
               <td>{subValueAvailabilities[incident.subValue] || '100.00'}%</td>
@@ -261,6 +326,9 @@ const ViewIncidents = () => {
             </tr>
           ))}
         </tbody>
+        <tfoot>
+          {/* Planned/Unplanned percentage summary row removed as per user request */}
+        </tfoot>
       </table>
       <p>
         <a href="/">Add New Incident</a>
@@ -302,23 +370,20 @@ const ViewIncidents = () => {
                 </select>
               </div>
               <div className="form-group">
-                <label htmlFor="editDate">Date:</label>
-                <input type="date" id="editDate" name="date" required defaultValue={editModal.incident.date} />
-              </div>
-              <div className="form-group">
-                <label htmlFor="editDownTime">Down Time:</label>
-                <input type="time" id="editDownTime" name="downTime" required defaultValue={editModal.incident.downTime} />
+                <label htmlFor="editDownTimeDate">Down Time Date & Time:</label>
+                <input type="datetime-local" id="editDownTimeDate" name="downTimeDate" defaultValue={editModal.incident.downTimeDate} />
               </div>
               <div className="form-group">
                 <label htmlFor="editDownType">Down Type:</label>
-                <select id="editDownType" name="downType" required defaultValue={editModal.incident.downType}>
+                <select id="editDownType" name="downType" defaultValue={editModal.incident.downType}>
                   <option value="Planned">Planned Down</option>
                   <option value="Unplanned">Unplanned Down</option>
+                  <option value="Not Down">Not Down</option>
                 </select>
               </div>
               <div className="form-group">
-                <label htmlFor="editUpTime">Up Time:</label>
-                <input type="time" id="editUpTime" name="upTime" required defaultValue={editModal.incident.upTime} />
+                <label htmlFor="editUpTimeDate">Up Time Date & Time:</label>
+                <input type="datetime-local" id="editUpTimeDate" name="upTimeDate" defaultValue={editModal.incident.upTimeDate} />
               </div>
               <div className="form-group">
                 <label htmlFor="editEscalatedPerson">Escalated Person:</label>
@@ -326,7 +391,6 @@ const ViewIncidents = () => {
                   type="text"
                   id="editEscalatedPerson"
                   name="escalatedPerson"
-                  required
                   defaultValue={editModal.incident.escalatedPerson}
                 />
               </div>
@@ -350,19 +414,22 @@ const ViewIncidents = () => {
             <table>
               <thead>
                 <tr>
-                  <th>Category</th>
                   <th>Sub-Value</th>
-                  <th>Availability (%)</th>
+                  <th>Total Down Time (min)</th>
+                  <th>100%</th>
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(subValueAvailabilities).map(([subValue, availability]) => (
-                  <tr key={subValue}>
-                    <td>{Object.keys(subValues).find((cat) => subValues[cat].includes(subValue)) || 'Unknown'}</td>
-                    <td>{subValue}</td>
-                    <td>{availability}%</td>
-                  </tr>
-                ))}
+                {Array.from(new Set(incidents.map(i => i.subValue))).map(subValue => {
+                  const totalDownTime = getTotalDownTimeForSubValue(incidents, subValue);
+                  return (
+                    <tr key={subValue}>
+                      <td>{subValue}</td>
+                      <td>{totalDownTime} minutes</td>
+                      <td>100%</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

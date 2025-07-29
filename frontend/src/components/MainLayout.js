@@ -3,6 +3,7 @@ import Sidebar from './Sidebar';
 import AddIncident from './AddIncident';
 import ViewIncidents from './ViewIncidents';
 import Dashboard from './Dashboard';
+import AvailabilityReport from './AvailabilityReport';
 import '../css/MainLayout.css'; // Assuming you have a CSS file for styling
 
 const MainLayout = () => {
@@ -29,10 +30,7 @@ const MainLayout = () => {
           <p>Reports functionality will be implemented here.</p>
         </div>;
       case 'availability-report':
-        return <div className="content-placeholder">
-          <h2>Availability Report</h2>
-          <p>Availability report details will be shown here.</p>
-        </div>;
+        return <AvailabilityReport />;
       case 'downtime-report':
         return <div className="content-placeholder">
           <h2>Downtime Report</h2>
