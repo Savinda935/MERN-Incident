@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { logout, getUser } from '../utils/auth';
 import Sidebar from './Sidebar';
 import AddIncident from './AddIncident';
 import ViewIncidents from './ViewIncidents';
@@ -9,11 +10,23 @@ import '../css/MainLayout.css'; // Assuming you have a CSS file for styling
 const MainLayout = () => {
   const [activeMenu, setActiveMenu] = useState('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+
+  useEffect(() => {
+    const user = getUser();
+    setCurrentUser(user);
+  }, []);
 
   const handleMenuChange = (menuId, path) => {
     setActiveMenu(menuId);
     // Here you would typically handle routing
     // For now, we'll just update the active menu
+  };
+
+  const handleLogout = () => {
+    logout();
+    window.location.href = '/login';
   };
 
   const renderContent = () => {
@@ -76,6 +89,8 @@ const MainLayout = () => {
       <Sidebar 
         activeMenu={activeMenu} 
         onMenuChange={handleMenuChange}
+        currentUser={currentUser}
+        onLogout={handleLogout}
       />
       
       <div className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
@@ -114,11 +129,43 @@ const MainLayout = () => {
               </button>
               
               <div className="user-menu">
-                <button className="user-btn">
+                <button 
+                  className="user-btn"
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                >
                   <span className="user-avatar">👤</span>
-                  <span className="user-name">Admin</span>
+                  <span className="user-name">
+                    {currentUser ? currentUser.username : 'User'}
+                  </span>
                   <span className="dropdown-arrow">▼</span>
                 </button>
+                
+                {showUserMenu && (
+                  <div className="user-dropdown">
+                    <div className="user-info">
+                      <span className="user-full-name">
+                        {currentUser ? currentUser.username : 'User'}
+                      </span>
+                      <span className="user-email">
+                        {currentUser ? currentUser.email : 'user@example.com'}
+                      </span>
+                    </div>
+                    <div className="dropdown-divider"></div>
+                    <button className="dropdown-item" onClick={() => setShowUserMenu(false)}>
+                      <span className="dropdown-icon">👤</span>
+                      Profile
+                    </button>
+                    <button className="dropdown-item" onClick={() => setShowUserMenu(false)}>
+                      <span className="dropdown-icon">⚙️</span>
+                      Settings
+                    </button>
+                    <div className="dropdown-divider"></div>
+                    <button className="dropdown-item logout-item" onClick={handleLogout}>
+                      <span className="dropdown-icon">🚪</span>
+                      Logout
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -16,6 +16,13 @@ const ViewIncidents = () => {
   const [monthlyDowntime, setMonthlyDowntime] = useState(0);
   const [overallAvailability, setOverallAvailability] = useState('100.00');
   const [subValueAvailabilities, setSubValueAvailabilities] = useState({});
+  
+  // Separate summary data for each category
+  const [categorySummaries, setCategorySummaries] = useState({
+    'Core Switch': { dailyDowntime: 0, monthlyDowntime: 0, overallAvailability: '100.00', incidentCount: 0 },
+    'WAN Firewall': { dailyDowntime: 0, monthlyDowntime: 0, overallAvailability: '100.00', incidentCount: 0 },
+    'Access & Distribution Switches': { dailyDowntime: 0, monthlyDowntime: 0, overallAvailability: '100.00', incidentCount: 0 }
+  });
 
   useEffect(() => {
     loadIncidents();
@@ -30,6 +37,7 @@ const ViewIncidents = () => {
   }, [categoryFilter]);
 
   useEffect(() => {
+    console.log('Filters changed, recalculating...', { categoryFilter, subValueFilter, downTypeFilter });
     filterIncidents();
     calculateDowntimeAndAvailability();
   }, [incidents, categoryFilter, subValueFilter, downTypeFilter]);
@@ -59,17 +67,42 @@ const ViewIncidents = () => {
     let totalDowntime = 0;
 
     incidents.forEach((incident) => {
-      // Use downTimeDate for filtering
-      const downDate = incident.downTimeDate ? incident.downTimeDate.slice(0, 10) : '';
-      if (period === 'day' && downDate !== today) return;
-      if (period === 'month' && downDate.slice(0, 7) !== thisMonth) return;
-
       const downTime = incident.downTimeDate ? new Date(incident.downTimeDate) : null;
       const upTime = incident.upTimeDate ? new Date(incident.upTimeDate) : null;
-      if (!downTime || !upTime) return;
-      let downtimeMinutes = (upTime - downTime) / (1000 * 60);
-      // If you have non24x7SubValues logic, update as needed
-      if (downtimeMinutes > 0) totalDowntime += downtimeMinutes;
+      
+      if (!downTime) return;
+
+      // Determine the effective end time
+      let effectiveEndTime = upTime;
+      if (!upTime || upTime > now) {
+        effectiveEndTime = now; // For ongoing incidents, use current time
+      }
+
+      // Calculate the period boundaries
+      let periodStart, periodEnd;
+      if (period === 'day') {
+        periodStart = new Date(today + 'T00:00:00');
+        periodEnd = new Date(today + 'T23:59:59');
+      } else if (period === 'month') {
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        periodStart = new Date(year, month, 1);
+        periodEnd = new Date(year, month + 1, 0, 23, 59, 59);
+      }
+
+      // Check if incident overlaps with the period
+      if (downTime <= periodEnd && effectiveEndTime >= periodStart) {
+        // Calculate the overlap
+        const overlapStart = new Date(Math.max(downTime.getTime(), periodStart.getTime()));
+        const overlapEnd = new Date(Math.min(effectiveEndTime.getTime(), periodEnd.getTime()));
+        
+        if (overlapEnd > overlapStart) {
+          const downtimeMinutes = (overlapEnd - overlapStart) / (1000 * 60);
+          if (downtimeMinutes > 0) {
+            totalDowntime += downtimeMinutes;
+          }
+        }
+      }
     });
 
     return Math.round(totalDowntime);
@@ -82,58 +115,125 @@ const ViewIncidents = () => {
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const thisMonth = now.toISOString().slice(0, 7);
 
-    const uniqueSubValues = new Set(incidents.filter((i) => i.downTimeDate && i.downTimeDate.slice(0, 7) === thisMonth).map((i) => i.subValue));
+    // Get unique sub-values for this month
+    const uniqueSubValues = new Set();
+    incidents.forEach(incident => {
+      if (incident.downTimeDate) {
+        const incidentMonth = incident.downTimeDate.slice(0, 7);
+        if (incidentMonth === thisMonth) {
+          uniqueSubValues.add(incident.subValue);
+        }
+      }
+    });
+
     const subValueAvailabilities = {};
 
     uniqueSubValues.forEach((sv) => {
-      // If you have non24x7SubValues logic, update as needed
-      const totalMinutes = daysInMonth * 24 * 60;
+      const totalMinutes = daysInMonth * 24 * 60; // Total minutes in the month
       let totalDowntime = 0;
 
       incidents.forEach((incident) => {
-        if (!incident.downTimeDate || !incident.upTimeDate || incident.downTimeDate === '-' || incident.upTimeDate === '-' || incident.subValue !== sv || incident.downTimeDate.slice(0, 7) !== thisMonth) return;
+        if (!incident.downTimeDate || incident.subValue !== sv) return;
+        
+        const incidentMonth = incident.downTimeDate.slice(0, 7);
+        if (incidentMonth !== thisMonth) return;
+
         const downTime = new Date(incident.downTimeDate);
-        const upTime = new Date(incident.upTimeDate);
-        if (isNaN(downTime) || isNaN(upTime)) return;
-        let downtimeMinutes = (upTime - downTime) / (1000 * 60);
-        if (downtimeMinutes > 0) totalDowntime += downtimeMinutes;
+        const upTime = incident.upTimeDate ? new Date(incident.upTimeDate) : now;
+        
+        if (isNaN(downTime.getTime())) return;
+
+        // Calculate downtime for this incident
+        const downtimeMinutes = (upTime - downTime) / (1000 * 60);
+        if (downtimeMinutes > 0) {
+          totalDowntime += downtimeMinutes;
+        }
       });
 
       subValueAvailabilities[sv] = totalMinutes === 0 ? 100 : ((totalMinutes - totalDowntime) / totalMinutes * 100).toFixed(2);
     });
 
-    // Overall availability
-    const count = [...uniqueSubValues].length;
-    const totalMinutes = count * daysInMonth * 24 * 60;
+    // Calculate overall availability for the month
+    const totalMinutes = daysInMonth * 24 * 60; // Total minutes in the month
     let totalDowntime = 0;
+
     incidents.forEach((incident) => {
-      if (!incident.downTimeDate || !incident.upTimeDate || incident.downTimeDate === '-' || incident.upTimeDate === '-' || incident.downTimeDate.slice(0, 7) !== thisMonth) return;
+      if (!incident.downTimeDate) return;
+      
+      const incidentMonth = incident.downTimeDate.slice(0, 7);
+      if (incidentMonth !== thisMonth) return;
+
       const downTime = new Date(incident.downTimeDate);
-      const upTime = new Date(incident.upTimeDate);
-      if (isNaN(downTime) || isNaN(upTime)) return;
-      let downtimeMinutes = (upTime - downTime) / (1000 * 60);
-      if (downtimeMinutes > 0) totalDowntime += downtimeMinutes;
+      const upTime = incident.upTimeDate ? new Date(incident.upTimeDate) : now;
+      
+      if (isNaN(downTime.getTime())) return;
+
+      // Calculate downtime for this incident
+      const downtimeMinutes = (upTime - downTime) / (1000 * 60);
+      if (downtimeMinutes > 0) {
+        totalDowntime += downtimeMinutes;
+      }
     });
+
     const overallAvailability = totalMinutes === 0 ? 100 : ((totalMinutes - totalDowntime) / totalMinutes * 100).toFixed(2);
 
     return { overall: overallAvailability, subValues: subValueAvailabilities };
   };
 
   const calculateDowntimeAndAvailability = () => {
-    setDailyDowntime(calculateDowntime(filteredIncidents, 'day'));
-    setMonthlyDowntime(calculateDowntime(filteredIncidents, 'month'));
+    console.log('Calculating downtime and availability for filtered incidents:', filteredIncidents.length);
+    console.log('Active filters:', { categoryFilter, subValueFilter, downTypeFilter });
+    
+    const daily = calculateDowntime(filteredIncidents, 'day');
+    const monthly = calculateDowntime(filteredIncidents, 'month');
     const availabilityData = calculateAvailability(filteredIncidents);
+    
+    console.log('Calculated values:', { daily, monthly, overall: availabilityData.overall });
+    
+    setDailyDowntime(daily);
+    setMonthlyDowntime(monthly);
     setOverallAvailability(availabilityData.overall);
     setSubValueAvailabilities(availabilityData.subValues);
+    
+    // Calculate summary for each category
+    calculateCategorySummaries();
+  };
+
+  const calculateCategorySummaries = () => {
+    const categories = ['Core Switch', 'WAN Firewall', 'Access & Distribution Switches'];
+    const newCategorySummaries = {};
+    
+    categories.forEach(category => {
+      const categoryIncidents = incidents.filter(incident => incident.category === category);
+      
+      const dailyDowntime = calculateDowntime(categoryIncidents, 'day');
+      const monthlyDowntime = calculateDowntime(categoryIncidents, 'month');
+      const availabilityData = calculateAvailability(categoryIncidents);
+      
+      newCategorySummaries[category] = {
+        dailyDowntime,
+        monthlyDowntime,
+        overallAvailability: availabilityData.overall,
+        incidentCount: categoryIncidents.length
+      };
+    });
+    
+    console.log('Category summaries:', newCategorySummaries);
+    setCategorySummaries(newCategorySummaries);
   };
 
   const filterIncidents = () => {
+    console.log('Filtering incidents with:', { categoryFilter, subValueFilter, downTypeFilter });
+    console.log('Total incidents before filtering:', incidents.length);
+    
     const filtered = incidents.filter(
       (incident) =>
         (!categoryFilter || incident.category === categoryFilter) &&
         (!subValueFilter || incident.subValue === subValueFilter) &&
         (!downTypeFilter || incident.downType === downTypeFilter)
     );
+    
+    console.log('Filtered incidents count:', filtered.length);
     setFilteredIncidents(filtered);
   };
 
@@ -244,6 +344,43 @@ const ViewIncidents = () => {
     return result.trim();
   }
 
+  // Function to calculate individual incident availability
+  function calculateIncidentAvailability(incident) {
+    if (!incident.downTimeDate || !incident.upTimeDate || 
+        incident.downTimeDate === '-' || incident.upTimeDate === '-') {
+      return '100.00';
+    }
+
+    const downTime = new Date(incident.downTimeDate);
+    const upTime = new Date(incident.upTimeDate);
+    
+    if (isNaN(downTime) || isNaN(upTime) || upTime <= downTime) {
+      return '100.00';
+    }
+
+    // Calculate downtime in minutes
+    const downtimeMinutes = (upTime - downTime) / (1000 * 60);
+    
+    // For individual incidents, calculate availability based on a 24-hour period
+    // This shows the impact of this incident on a daily availability metric
+    const totalMinutesInDay = 24 * 60; // 1440 minutes
+    const availability = Math.max(0, ((totalMinutesInDay - downtimeMinutes) / totalMinutesInDay * 100)).toFixed(2);
+    
+    return availability;
+  }
+
+  // Function to get CSS class for down type
+  function getDownTypeClass(downType) {
+    if (!downType) return '';
+    
+    const type = downType.toLowerCase();
+    if (type === 'not down') return 'down-type not-down';
+    if (type === 'planned') return 'down-type planned';
+    if (type === 'unplanned') return 'down-type unplanned';
+    
+    return 'down-type planned'; // default to planned for unknown types
+  }
+
   return (
     <div className="container">
       <h1>View NOC Incidents</h1>
@@ -266,16 +403,50 @@ const ViewIncidents = () => {
           <option value="">All Down Types</option>
           <option value="Planned">Planned Down</option>
           <option value="Unplanned">Unplanned Down</option>
-          <option value="Not Down">Not Down</option>
         </select>
         <button onClick={() => setAvailabilityModal(true)}>Availability</button>
       </div>
       <div id="summary">
         <h3>Summary</h3>
-        <p>Daily Downtime (Today): <span>{dailyDowntime}</span> minutes</p>
-        <p>Monthly Downtime (This Month): <span>{monthlyDowntime}</span> minutes</p>
-        <p>Overall Monthly Availability: <span>{overallAvailability}%</span></p>
-        <p>Total Ups (Incidents): <span>{filteredIncidents.length}</span></p>
+        
+        {/* Overall Summary */}
+        <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '8px' }}>
+          <h4 style={{ margin: '0 0 10px 0', color: '#fff' }}>Overall Summary</h4>
+          <p>Daily Downtime (Today): <span>{dailyDowntime}</span> minutes</p>
+          <p>Monthly Downtime (This Month): <span>{monthlyDowntime}</span> minutes</p>
+          <p>Overall Monthly Availability: <span>{overallAvailability}%</span></p>
+          <p>Total Incidents: <span>{filteredIncidents.length}</span></p>
+        </div>
+
+        {/* Category-wise Summaries */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '15px' }}>
+          {/* Core Switch Summary */}
+          <div style={{ padding: '15px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '8px' }}>
+            <h4 style={{ margin: '0 0 10px 0', color: '#fff' }}>Core Switch</h4>
+            <p>Daily Downtime: <span>{categorySummaries['Core Switch']?.dailyDowntime || 0}</span> minutes</p>
+            <p>Monthly Downtime: <span>{categorySummaries['Core Switch']?.monthlyDowntime || 0}</span> minutes</p>
+            <p>Availability: <span>{categorySummaries['Core Switch']?.overallAvailability || '100.00'}%</span></p>
+            <p>Incidents: <span>{categorySummaries['Core Switch']?.incidentCount || 0}</span></p>
+          </div>
+
+          {/* WAN Firewall Summary */}
+          <div style={{ padding: '15px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '8px' }}>
+            <h4 style={{ margin: '0 0 10px 0', color: '#fff' }}>WAN Firewall</h4>
+            <p>Daily Downtime: <span>{categorySummaries['WAN Firewall']?.dailyDowntime || 0}</span> minutes</p>
+            <p>Monthly Downtime: <span>{categorySummaries['WAN Firewall']?.monthlyDowntime || 0}</span> minutes</p>
+            <p>Availability: <span>{categorySummaries['WAN Firewall']?.overallAvailability || '100.00'}%</span></p>
+            <p>Incidents: <span>{categorySummaries['WAN Firewall']?.incidentCount || 0}</span></p>
+          </div>
+
+          {/* Access & Distribution Switches Summary */}
+          <div style={{ padding: '15px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '8px' }}>
+            <h4 style={{ margin: '0 0 10px 0', color: '#fff' }}>Access & Distribution Switches</h4>
+            <p>Daily Downtime: <span>{categorySummaries['Access & Distribution Switches']?.dailyDowntime || 0}</span> minutes</p>
+            <p>Monthly Downtime: <span>{categorySummaries['Access & Distribution Switches']?.monthlyDowntime || 0}</span> minutes</p>
+            <p>Availability: <span>{categorySummaries['Access & Distribution Switches']?.overallAvailability || '100.00'}%</span></p>
+            <p>Incidents: <span>{categorySummaries['Access & Distribution Switches']?.incidentCount || 0}</span></p>
+          </div>
+        </div>
       </div>
       <h3>Incidents</h3>
       <table>
@@ -289,30 +460,22 @@ const ViewIncidents = () => {
             <th>Days Down</th>
             <th>Escalated Person</th>
             <th>Remarks</th>
-            <th>Availability (%)</th>
+            <th>Daily Availability (%)</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           {filteredIncidents.map((incident) => (
-            <tr key={incident.id}
-              style={
-                incident.downType === 'Not Down'
-                  ? { backgroundColor: '#d4edda' } // green
-                  : (incident.downTimeDate && incident.upTimeDate && incident.downTimeDate !== '-' && incident.upTimeDate !== '-')
-                    ? { backgroundColor: '#f8d7da' } // light red
-                    : {}
-              }
-            >
+            <tr key={incident.id}>
               <td>{incident.category}</td>
               <td>{incident.subValue}</td>
               <td>{formatDateTime(incident.downTimeDate)}</td>
-              <td>{incident.downType}</td>
+              <td className={getDownTypeClass(incident.downType)}>{incident.downType}</td>
               <td>{formatDateTime(incident.upTimeDate)}</td>
               <td>{formatDuration(incident.downTimeDate, incident.upTimeDate)}</td>
               <td>{incident.escalatedPerson}</td>
               <td>{incident.remarks || ''}</td>
-              <td>{subValueAvailabilities[incident.subValue] || '100.00'}%</td>
+              <td>{calculateIncidentAvailability(incident)}%</td>
               <td>
                 <button
                   onClick={() =>
@@ -378,7 +541,6 @@ const ViewIncidents = () => {
                 <select id="editDownType" name="downType" defaultValue={editModal.incident.downType}>
                   <option value="Planned">Planned Down</option>
                   <option value="Unplanned">Unplanned Down</option>
-                  <option value="Not Down">Not Down</option>
                 </select>
               </div>
               <div className="form-group">

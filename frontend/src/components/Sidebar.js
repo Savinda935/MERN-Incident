@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import '../css/Sidebar.css'; // Assuming you have a CSS file for styling
 
-const Sidebar = ({ activeMenu, onMenuChange }) => {
+const Sidebar = ({ activeMenu, onMenuChange, currentUser, onLogout }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const menuItems = [
@@ -74,6 +74,12 @@ const Sidebar = ({ activeMenu, onMenuChange }) => {
     onMenuChange(subItem.id, subItem.path);
   };
 
+  const handleLogout = () => {
+    if (onLogout) {
+      onLogout();
+    }
+  };
+
   return (
     <div className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
@@ -136,8 +142,12 @@ const Sidebar = ({ activeMenu, onMenuChange }) => {
           <div className="user-avatar">👤</div>
           {!isCollapsed && (
             <div className="user-details">
-              <span className="username">Admin User</span>
-              <span className="user-role">Network Admin</span>
+              <span className="username">
+                {currentUser ? currentUser.username : 'User'}
+              </span>
+              <span className="user-role">
+                {currentUser ? currentUser.email : 'user@example.com'}
+              </span>
             </div>
           )}
         </div>
@@ -153,6 +163,7 @@ const Sidebar = ({ activeMenu, onMenuChange }) => {
 
         <button 
           className="logout-btn"
+          onClick={handleLogout}
           title={isCollapsed ? 'Logout' : ''}
         >
           <span className="logout-icon">🚪</span>
