@@ -381,6 +381,103 @@ const ViewIncidents = () => {
     return 'down-type planned'; // default to planned for unknown types
   }
 
+  // Function to calculate planned and unplanned downtime for each sub-value
+  const calculateSubValueDowntime = () => {
+    const now = new Date();
+    const thisMonth = now.toISOString().slice(0, 7);
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const totalMinutesInMonth = daysInMonth * 24 * 60; // 720 hours = 43200 minutes
+    
+    // Get all unique sub-values
+    const allSubValues = Array.from(new Set(incidents.map(i => i.subValue)));
+    
+    const subValueDowntime = {};
+    
+    allSubValues.forEach(subValue => {
+      const subValueIncidents = incidents.filter(inc => 
+        inc.subValue === subValue && 
+        inc.downTimeDate && 
+        inc.downTimeDate.slice(0, 7) === thisMonth
+      );
+      
+      let plannedDowntime = 0;
+      let unplannedDowntime = 0;
+      
+      subValueIncidents.forEach(incident => {
+        if (incident.downTimeDate && incident.upTimeDate && 
+            incident.downTimeDate !== '-' && incident.upTimeDate !== '-') {
+          
+          const downTime = new Date(incident.downTimeDate);
+          const upTime = new Date(incident.upTimeDate);
+          
+          if (!isNaN(downTime) && !isNaN(upTime) && upTime > downTime) {
+            const downtimeMinutes = (upTime - downTime) / (1000 * 60);
+            
+            if (incident.downType === 'Planned') {
+              plannedDowntime += downtimeMinutes;
+            } else if (incident.downType === 'Unplanned') {
+              unplannedDowntime += downtimeMinutes;
+            }
+          }
+        }
+      });
+      
+      const totalDowntime = plannedDowntime + unplannedDowntime;
+      const uptime = totalMinutesInMonth - totalDowntime;
+      const uptimePercentage = ((uptime / totalMinutesInMonth) * 100).toFixed(2);
+      const plannedPercentage = ((plannedDowntime / totalMinutesInMonth) * 100).toFixed(2);
+      const unplannedPercentage = ((unplannedDowntime / totalMinutesInMonth) * 100).toFixed(2);
+      
+      subValueDowntime[subValue] = {
+        uptime: uptimePercentage,
+        plannedDowntime: Math.round(plannedDowntime),
+        unplannedDowntime: Math.round(unplannedDowntime),
+        totalDowntime: Math.round(totalDowntime),
+        plannedPercentage: plannedPercentage,
+        unplannedPercentage: unplannedPercentage,
+        totalMinutesInMonth: totalMinutesInMonth
+      };
+    });
+    
+    return subValueDowntime;
+  };
+
+  // Function to download detailed downtime table as CSV
+  const downloadDetailedDowntimeTable = () => {
+    const now = new Date();
+    const monthName = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+    const subValueDowntime = calculateSubValueDowntime();
+    
+    // Create CSV content
+    let csvContent = `Detailed Downtime Analysis - ${monthName}\n\n`;
+    csvContent += `Uplink,Uptime (%),Downtime - Planned (%),Downtime - Unplanned (%),Total Downtime (Planned + Unplanned) (Out of 720 h),Remarks\n`;
+    
+    Object.entries(subValueDowntime).forEach(([subValue, data]) => {
+      const remarks = [];
+      if (data.plannedDowntime > 0) {
+        remarks.push(`Planned : ${data.plannedDowntime} minutes`);
+      }
+      if (data.unplannedDowntime > 0) {
+        remarks.push(`Unplanned : ${data.unplannedDowntime} minutes`);
+      }
+      
+      const remarksText = remarks.length > 0 ? remarks.join('; ') : '-';
+      
+      csvContent += `${subValue},${data.uptime}%,${data.plannedPercentage}%,${data.unplannedPercentage}%,${data.totalDowntime} m,${remarksText}\n`;
+    });
+    
+    // Create and download the file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `detailed-downtime-analysis-${monthName.replace(' ', '-')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="container">
       <h1>View NOC Incidents</h1>
@@ -405,6 +502,9 @@ const ViewIncidents = () => {
           <option value="Unplanned">Unplanned Down</option>
         </select>
         <button onClick={() => setAvailabilityModal(true)}>Availability</button>
+        <button onClick={downloadDetailedDowntimeTable} style={{background: 'linear-gradient(135deg, #9b59b6, #8e44ad)'}}>
+          📊 Download Detailed Table
+        </button>
       </div>
       <div id="summary">
         <h3>Summary</h3>
@@ -448,6 +548,56 @@ const ViewIncidents = () => {
           </div>
         </div>
       </div>
+      
+      {/* Detailed Downtime Analysis Table */}
+      <div style={{ marginBottom: '30px' }}>
+        <h3 style={{ color: '#2c3e50', marginBottom: '15px' }}>Detailed Downtime Analysis (This Month)</h3>
+        <div style={{ overflowX: 'auto', background: 'white', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: 'linear-gradient(135deg, #34495e, #2c3e50)' }}>
+                <th style={{ color: 'white', padding: '15px 12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Uplink</th>
+                <th style={{ color: 'white', padding: '15px 12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Uptime (%)</th>
+                <th style={{ color: 'white', padding: '15px 12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Downtime - Planned (%)</th>
+                <th style={{ color: 'white', padding: '15px 12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Downtime - Unplanned (%)</th>
+                <th style={{ color: 'white', padding: '15px 12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Total Downtime (Planned + Unplanned) (Out of 720 h)</th>
+                <th style={{ color: 'white', padding: '15px 12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Remarks</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.entries(calculateSubValueDowntime()).map(([subValue, data]) => {
+                const remarks = [];
+                if (data.plannedDowntime > 0) {
+                  remarks.push(`Planned : ${data.plannedDowntime} minutes`);
+                }
+                if (data.unplannedDowntime > 0) {
+                  remarks.push(`Unplanned : ${data.unplannedDowntime} minutes`);
+                }
+                const remarksText = remarks.length > 0 ? remarks.join('; ') : '-';
+                
+                return (
+                  <tr key={subValue} style={{ borderBottom: '1px solid #e1e8ed' }}>
+                    <td style={{ padding: '12px', fontSize: '14px' }}>{subValue}</td>
+                    <td style={{ 
+                      padding: '12px', 
+                      fontSize: '14px', 
+                      fontWeight: '600',
+                      color: parseFloat(data.uptime) === 100 ? '#27ae60' : '#e74c3c'
+                    }}>
+                      {data.uptime}%
+                    </td>
+                    <td style={{ padding: '12px', fontSize: '14px' }}>{data.plannedPercentage}%</td>
+                    <td style={{ padding: '12px', fontSize: '14px' }}>{data.unplannedPercentage}%</td>
+                    <td style={{ padding: '12px', fontSize: '14px' }}>{data.totalDowntime} m</td>
+                    <td style={{ padding: '12px', fontSize: '14px' }}>{remarksText}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
       <h3>Incidents</h3>
       <table>
         <thead>
