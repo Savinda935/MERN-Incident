@@ -7,7 +7,7 @@ import MainLayout from './components/MainLayout';
 import AvailabilityReport from './components/AvailabilityReport';
 import Login from './components/Login';
 import SessionTimeout from './components/SessionTimeout';
-
+import UplinkAvailabilityTable from './components/UplinkAvailabilityTable';
 import './App.css';
 
 // Protected Route Component
@@ -130,6 +130,11 @@ function App() {
         <Route path="/availability-report" element={
           <ProtectedRoute>
             <AvailabilityReport />
+          </ProtectedRoute>
+        } />
+        <Route path="/uplink-availability" element={
+          <ProtectedRoute>
+            <UplinkAvailabilityTable />
           </ProtectedRoute>
         } />
       </Routes>

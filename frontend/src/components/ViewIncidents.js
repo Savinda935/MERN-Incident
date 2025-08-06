@@ -556,12 +556,12 @@ const ViewIncidents = () => {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'linear-gradient(135deg, #34495e, #2c3e50)' }}>
-                <th style={{ color: 'white', padding: '15px 12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Uplink</th>
-                <th style={{ color: 'white', padding: '15px 12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Uptime (%)</th>
-                <th style={{ color: 'white', padding: '15px 12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Downtime - Planned (%)</th>
-                <th style={{ color: 'white', padding: '15px 12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Downtime - Unplanned (%)</th>
-                <th style={{ color: 'white', padding: '15px 12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Total Downtime (Planned + Unplanned) (Out of 720 h)</th>
-                <th style={{ color: 'white', padding: '15px 12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Remarks</th>
+                <th style={{ color: 'black', padding: '15px 12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Uplink</th>
+                <th style={{ color: 'black', padding: '15px 12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Uptime (%)</th>
+                <th style={{ color: 'black', padding: '15px 12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Downtime - Planned (%)</th>
+                <th style={{ color: 'black', padding: '15px 12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Downtime - Unplanned (%)</th>
+                <th style={{ color: 'black', padding: '15px 12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Total Downtime (Planned + Unplanned) (Out of 720 h)</th>
+                <th style={{ color: 'black', padding: '15px 12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Remarks</th>
               </tr>
             </thead>
             <tbody>

@@ -142,7 +142,7 @@
   
   tbody td {
     padding: 12px;
-    border-bottom: 1px solid #e1e8ed;
+    border-bottom: 1px solid #000000;
     font-size: 14px;
   }
   
@@ -440,4 +440,9 @@
     width: 200px;
     margin-bottom: 10px;
   }
+}
+
+/* Add this CSS for the modal table */
+.modal-table th, .modal-table td {
+  color: #000 !important;
 }

@@ -5,6 +5,7 @@ import AddIncident from './AddIncident';
 import ViewIncidents from './ViewIncidents';
 import Dashboard from './Dashboard';
 import AvailabilityReport from './AvailabilityReport';
+import UplinkAvailabilityTable from './UplinkAvailabilityTable';
 import '../css/MainLayout.css'; // Assuming you have a CSS file for styling
 
 const MainLayout = () => {
@@ -45,10 +46,7 @@ const MainLayout = () => {
       case 'availability-report':
         return <AvailabilityReport />;
       case 'downtime-report':
-        return <div className="content-placeholder">
-          <h2>Downtime Report</h2>
-          <p>Downtime report details will be shown here.</p>
-        </div>;
+        return  <UplinkAvailabilityTable/>;
       case 'monthly-summary':
         return <div className="content-placeholder">
           <h2>Monthly Summary</h2>
