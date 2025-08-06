@@ -31,6 +31,12 @@
     background-clip: text;
     font-weight: 700;
   }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
   
   .month-indicator {
     background: linear-gradient(45deg, #28a745, #20c997);
@@ -39,6 +45,32 @@
     font-weight: 600;
     font-size: 1.1rem;
     box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+  }
+
+  .download-btn {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 25px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .download-btn:hover {
+    background: linear-gradient(45deg, #0056b3, #004085);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+  }
+
+  .download-btn:active {
+    transform: translateY(0);
   }
   
   /* Loading */
@@ -397,6 +429,16 @@
     .dashboard-header h1 {
       font-size: 2rem;
     }
+
+    .header-actions {
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .download-btn {
+      padding: 10px 20px;
+      font-size: 0.9rem;
+    }
     
     .stats-section {
       grid-template-columns: 1fr;
@@ -424,6 +466,15 @@
   @media (max-width: 480px) {
     .dashboard-header h1 {
       font-size: 1.8rem;
+    }
+
+    .header-actions {
+      gap: 10px;
+    }
+
+    .download-btn {
+      padding: 8px 16px;
+      font-size: 0.85rem;
     }
     
     .chart-section,

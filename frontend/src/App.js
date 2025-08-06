@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { isAuthenticated, setupAuthInterceptor } from './utils/auth';
+import { isAuthenticated, setupAuthInterceptor, initializeAuth, setWarningCallback, manualLogout } from './utils/auth';
 import AddIncident from './components/AddIncident';
 import ViewIncidents from './components/ViewIncidents';
 import MainLayout from './components/MainLayout';
 import AvailabilityReport from './components/AvailabilityReport';
 import Login from './components/Login';
+import SessionTimeout from './components/SessionTimeout';
 
 import './App.css';
 
@@ -13,13 +14,32 @@ import './App.css';
 const ProtectedRoute = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuth, setIsAuth] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
 
   useEffect(() => {
     setupAuthInterceptor();
     const auth = isAuthenticated();
     setIsAuth(auth);
     setIsLoading(false);
+
+    if (auth) {
+      // Initialize auto-logout functionality
+      initializeAuth();
+      
+      // Set up warning callback
+      setWarningCallback(() => {
+        setShowWarning(true);
+      });
+    }
   }, []);
+
+  const handleExtendSession = () => {
+    setShowWarning(false);
+  };
+
+  const handleLogout = () => {
+    manualLogout();
+  };
 
   if (isLoading) {
     return (
@@ -35,7 +55,17 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  return isAuth ? children : <Navigate to="/login" replace />;
+  return (
+    <>
+      {isAuth ? children : <Navigate to="/login" replace />}
+      <SessionTimeout
+        isVisible={showWarning}
+        onExtend={handleExtendSession}
+        onLogout={handleLogout}
+        timeLeft={120} // 2 minutes warning
+      />
+    </>
+  );
 };
 
 // Public Route Component (redirects to dashboard if already logged in)

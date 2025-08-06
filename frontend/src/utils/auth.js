@@ -2,39 +2,82 @@ import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:5000/api';
 
-// Token management
-export const getToken = () => {
-  return localStorage.getItem('token');
+// Auto logout configuration
+const AUTO_LOGOUT_DELAY = 10 * 60 * 1000; // 10 minutes in milliseconds
+const WARNING_DELAY = 8 * 60 * 1000; // Show warning 2 minutes before logout
+let logoutTimer = null;
+let warningTimer = null;
+let activityListeners = [];
+let onWarningCallback = null;
+
+// Initialize activity monitoring
+const initializeActivityMonitoring = () => {
+  // Reset timer on any user activity
+  const resetLogoutTimer = () => {
+    if (logoutTimer) {
+      clearTimeout(logoutTimer);
+    }
+    if (warningTimer) {
+      clearTimeout(warningTimer);
+    }
+    
+    // Set warning timer
+    warningTimer = setTimeout(() => {
+      if (onWarningCallback) {
+        onWarningCallback();
+      }
+    }, WARNING_DELAY);
+    
+    // Set logout timer
+    logoutTimer = setTimeout(() => {
+      console.log('Auto logout due to inactivity');
+      logout();
+    }, AUTO_LOGOUT_DELAY);
+  };
+
+  // Activity events to monitor
+  const activityEvents = [
+    'mousedown',
+    'mousemove',
+    'keypress',
+    'scroll',
+    'touchstart',
+    'click'
+  ];
+
+  // Add event listeners for user activity
+  activityEvents.forEach(event => {
+    document.addEventListener(event, resetLogoutTimer, true);
+    activityListeners.push({ event, handler: resetLogoutTimer });
+  });
+
+  // Start the initial timer
+  resetLogoutTimer();
 };
 
-export const setToken = (token) => {
-  localStorage.setItem('token', token);
+// Clear activity monitoring
+const clearActivityMonitoring = () => {
+  if (logoutTimer) {
+    clearTimeout(logoutTimer);
+    logoutTimer = null;
+  }
+  if (warningTimer) {
+    clearTimeout(warningTimer);
+    warningTimer = null;
+  }
+
+  // Remove all activity listeners
+  activityListeners.forEach(({ event, handler }) => {
+    document.removeEventListener(event, handler, true);
+  });
+  activityListeners = [];
 };
 
-export const removeToken = () => {
-  localStorage.removeItem('token');
+// Set warning callback
+export const setWarningCallback = (callback) => {
+  onWarningCallback = callback;
 };
 
-export const getUser = () => {
-  const user = localStorage.getItem('user');
-  return user ? JSON.parse(user) : null;
-};
-
-export const setUser = (user) => {
-  localStorage.setItem('user', JSON.stringify(user));
-};
-
-export const removeUser = () => {
-  localStorage.removeItem('user');
-};
-
-// Check if user is authenticated
-export const isAuthenticated = () => {
-  const token = getToken();
-  return !!token;
-};
-
-// API functions
 export const login = async (email, password) => {
   try {
     const response = await axios.post(`${API_BASE_URL}/auth/login`, {
@@ -42,18 +85,21 @@ export const login = async (email, password) => {
       password
     });
 
-    const { token, user } = response.data;
-    setToken(token);
-    setUser(user);
-
-    // Set default authorization header for future requests
-    axios.defaults.headers.common['x-auth-token'] = token;
-
-    return { success: true, user };
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      
+      // Initialize activity monitoring after successful login
+      initializeActivityMonitoring();
+      
+      return { success: true, user: response.data.user };
+    } else {
+      return { success: false, message: 'Login failed' };
+    }
   } catch (error) {
-    return { 
-      success: false, 
-      message: error.response?.data || 'Login failed' 
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Login failed'
     };
   }
 };
@@ -66,29 +112,57 @@ export const register = async (username, email, password) => {
       password
     });
 
-    return { success: true, message: response.data };
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      
+      // Initialize activity monitoring after successful registration
+      initializeActivityMonitoring();
+      
+      return { success: true, user: response.data.user };
+    } else {
+      return { success: false, message: 'Registration failed' };
+    }
   } catch (error) {
-    return { 
-      success: false, 
-      message: error.response?.data || 'Registration failed' 
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Registration failed'
     };
   }
 };
 
 export const logout = () => {
-  removeToken();
-  removeUser();
-  delete axios.defaults.headers.common['x-auth-token'];
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  
+  // Clear activity monitoring
+  clearActivityMonitoring();
+  
+  // Redirect to login page
+  window.location.href = '/login';
 };
 
-// Setup axios interceptor for authentication
+export const getToken = () => {
+  return localStorage.getItem('token');
+};
+
+export const getUser = () => {
+  const user = localStorage.getItem('user');
+  return user ? JSON.parse(user) : null;
+};
+
+export const isAuthenticated = () => {
+  const token = getToken();
+  return !!token;
+};
+
 export const setupAuthInterceptor = () => {
-  // Add token to all requests
+  // Add request interceptor to include token
   axios.interceptors.request.use(
     (config) => {
       const token = getToken();
       if (token) {
-        config.headers['x-auth-token'] = token;
+        config.headers.Authorization = `Bearer ${token}`;
       }
       return config;
     },
@@ -97,15 +171,55 @@ export const setupAuthInterceptor = () => {
     }
   );
 
-  // Handle authentication errors
+  // Add response interceptor to handle auth errors
   axios.interceptors.response.use(
-    (response) => response,
+    (response) => {
+      return response;
+    },
     (error) => {
       if (error.response?.status === 401) {
+        // Token expired or invalid
         logout();
-        window.location.href = '/login';
       }
       return Promise.reject(error);
     }
   );
+};
+
+// Check if user is logged in and initialize activity monitoring
+export const initializeAuth = () => {
+  if (isAuthenticated()) {
+    initializeActivityMonitoring();
+  }
+};
+
+// Manual logout function for user-initiated logout
+export const manualLogout = () => {
+  clearActivityMonitoring();
+  logout();
+};
+
+// Reset activity timer (can be called from components)
+export const resetActivityTimer = () => {
+  if (isAuthenticated()) {
+    // Clear existing timers
+    if (logoutTimer) {
+      clearTimeout(logoutTimer);
+    }
+    if (warningTimer) {
+      clearTimeout(warningTimer);
+    }
+    
+    // Restart timers
+    warningTimer = setTimeout(() => {
+      if (onWarningCallback) {
+        onWarningCallback();
+      }
+    }, WARNING_DELAY);
+    
+    logoutTimer = setTimeout(() => {
+      console.log('Auto logout due to inactivity');
+      logout();
+    }, AUTO_LOGOUT_DELAY);
+  }
 }; 

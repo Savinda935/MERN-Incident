@@ -77,6 +77,59 @@ function groupIncidentsByCategoryAndMonth(incidents) {
   return groups;
 }
 
+// Function to download availability report as CSV
+const downloadAvailabilityReport = (allIncidents) => {
+  const now = new Date();
+  const monthName = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+  const categories = [
+    "Core Switch",
+    "WAN Firewall",
+    "Access & Distribution Switches"
+  ];
+
+  // Create CSV content
+  let csvContent = `Network Availability Report - ${monthName}\n\n`;
+  
+  categories.forEach(category => {
+    const availabilitiesForCategory = calculateMonthlyAvailability(allIncidents, category);
+    const up100 = availabilitiesForCategory.filter(a => parseFloat(a.availability) === 100);
+    const below100 = availabilitiesForCategory.filter(a => parseFloat(a.availability) < 100);
+    const total = availabilitiesForCategory.length;
+    const up100Percent = total ? ((up100.length / total) * 100).toFixed(0) : 0;
+    const below100Percent = total ? ((below100.length / total) * 100).toFixed(0) : 0;
+
+    csvContent += `${category} Summary\n`;
+    csvContent += `Total Uplinks,${total}\n`;
+    csvContent += `Perfect Uptime (100%),${up100.length} (${up100Percent}%)\n`;
+    csvContent += `Had Downtime (< 100%),${below100.length} (${below100Percent}%)\n\n`;
+
+    csvContent += `${category} - Perfect Uptime (100%)\n`;
+    csvContent += `Uplink,Uptime\n`;
+    up100.forEach(a => {
+      csvContent += `${a.subValue},100%\n`;
+    });
+    csvContent += '\n';
+
+    csvContent += `${category} - Had Downtime (< 100%)\n`;
+    csvContent += `Uplink,Uptime\n`;
+    below100.forEach(a => {
+      csvContent += `${a.subValue},${a.availability}%\n`;
+    });
+    csvContent += '\n';
+  });
+
+  // Create and download the file
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.setAttribute('href', url);
+  link.setAttribute('download', `availability-report-${monthName.replace(' ', '-')}.csv`);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
 const AvailabilityReport = () => {
   const [availabilities, setAvailabilities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -194,8 +247,17 @@ const AvailabilityReport = () => {
     <div className="availability-dashboard">
       <div className="dashboard-header">
         <h1>Network Availability Report</h1>
-        <div className="month-indicator">
-          <span>{monthName}</span>
+        <div className="header-actions">
+          <div className="month-indicator">
+            <span>{monthName}</span>
+          </div>
+          <button 
+            className="download-btn"
+            onClick={() => downloadAvailabilityReport(allIncidents)}
+            title="Download Availability Report"
+          >
+            📥 Download Report
+          </button>
         </div>
       </div>
       {categories.map(category => {

@@ -425,7 +425,7 @@ const ViewIncidents = () => {
             <h4 style={{ margin: '0 0 10px 0', color: '#fff' }}>Core Switch</h4>
             <p>Daily Downtime: <span>{categorySummaries['Core Switch']?.dailyDowntime || 0}</span> minutes</p>
             <p>Monthly Downtime: <span>{categorySummaries['Core Switch']?.monthlyDowntime || 0}</span> minutes</p>
-            <p>Availability: <span>{categorySummaries['Core Switch']?.overallAvailability || '100.00'}%</span></p>
+            <p>Availability(Monthly): <span>{categorySummaries['Core Switch']?.overallAvailability || '100.00'}%</span></p>
             <p>Incidents: <span>{categorySummaries['Core Switch']?.incidentCount || 0}</span></p>
           </div>
 
@@ -438,7 +438,7 @@ const ViewIncidents = () => {
             <p>Incidents: <span>{categorySummaries['WAN Firewall']?.incidentCount || 0}</span></p>
           </div>
 
-          {/* Access & Distribution Switches Summary */}
+          {/* Access & Distribution Switches Summary */}   
           <div style={{ padding: '15px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '8px' }}>
             <h4 style={{ margin: '0 0 10px 0', color: '#fff' }}>Access & Distribution Switches</h4>
             <p>Daily Downtime: <span>{categorySummaries['Access & Distribution Switches']?.dailyDowntime || 0}</span> minutes</p>
@@ -460,7 +460,8 @@ const ViewIncidents = () => {
             <th>Days Down</th>
             <th>Escalated Person</th>
             <th>Remarks</th>
-            <th>Daily Availability (%)</th>
+            {/* Remove Daily Availability column and add Monthly Availability column */}
+            <th>Monthly Availability (%)</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -475,7 +476,8 @@ const ViewIncidents = () => {
               <td>{formatDuration(incident.downTimeDate, incident.upTimeDate)}</td>
               <td>{incident.escalatedPerson}</td>
               <td>{incident.remarks || ''}</td>
-              <td>{calculateIncidentAvailability(incident)}%</td>
+              {/* Show monthly availability for the incident's subValue */}
+              <td>{subValueAvailabilities[incident.subValue] || '100.00'}%</td>
               <td>
                 <button
                   onClick={() =>

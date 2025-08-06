@@ -7,20 +7,21 @@ const Login = ({ onLoginSuccess }) => {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
-    password: ''
+    password: '',
+    remember: false
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     setupAuthInterceptor();
   }, []);
 
   const handleChange = (e) => {
+    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: value
     });
     setError(''); // Clear error when user types
   };
@@ -60,117 +61,112 @@ const Login = ({ onLoginSuccess }) => {
 
   return (
     <div className="login-container">
-      <div className="login-card">
-        <div className="login-header">
-          <div className="logo">
-            <span className="logo-icon">🖧</span>
-            <h1>NOC System</h1>
-          </div>
-          <p className="login-subtitle">Network Operations Center</p>
+      <div className="login-header">
+        <h1 className="login-title">Welcome Back</h1>
+        <p className="login-subtitle">Sign in to your account</p>
+      </div>
+
+      {error && (
+        <div className="error-message">
+          <span className="error-icon">⚠️</span>
+          {error}
         </div>
+      )}
 
-        <form onSubmit={handleSubmit} className="login-form">
-          {error && (
-            <div className="error-message">
-              <span className="error-icon">⚠️</span>
-              {error}
-            </div>
-          )}
-
-          {!isLogin && (
-            <div className="form-group">
-              <label htmlFor="username">Username</label>
-              <div className="input-wrapper">
-                <span className="input-icon">👤</span>
-                <input
-                  type="text"
-                  id="username"
-                  name="username"
-                  value={formData.username}
-                  onChange={handleChange}
-                  placeholder="Enter your username"
-                  required={!isLogin}
-                  disabled={loading}
-                />
-              </div>
-            </div>
-          )}
-
+      <form onSubmit={handleSubmit}>
+        {!isLogin && (
           <div className="form-group">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="username">Username</label>
             <div className="input-wrapper">
-              <span className="input-icon">📧</span>
+              <i className="fas fa-user input-icon"></i>
               <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
+                type="text"
+                id="username"
+                name="username"
+                className="form-control"
+                placeholder="Enter your username"
+                value={formData.username}
                 onChange={handleChange}
-                placeholder="Enter your email"
-                required
+                required={!isLogin}
                 disabled={loading}
               />
             </div>
           </div>
+        )}
 
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <div className="input-wrapper">
-              <span className="input-icon">🔒</span>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="Enter your password"
-                required
-                disabled={loading}
-              />
-              <button
-                type="button"
-                className="password-toggle"
-                onClick={() => setShowPassword(!showPassword)}
-                disabled={loading}
-              >
-                {showPassword ? '🙈' : '👁️'}
-              </button>
-            </div>
+        <div className="form-group">
+          <label htmlFor="email">Email Address</label>
+          <div className="input-wrapper">
+            <i className="fas fa-envelope input-icon"></i>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              className="form-control"
+              placeholder="Enter your email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              disabled={loading}
+            />
           </div>
-
-          <button
-            type="submit"
-            className={`login-btn ${loading ? 'loading' : ''}`}
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <span className="spinner"></span>
-                {isLogin ? 'Signing In...' : 'Creating Account...'}
-              </>
-            ) : (
-              <>
-                <span className="login-icon">🚪</span>
-                {isLogin ? 'Sign In' : 'Register'}
-              </>
-            )}
-          </button>
-        </form>
-
-        <div className="login-footer">
-          <button
-            type="button"
-            className="toggle-mode-btn"
-            onClick={() => setIsLogin(!isLogin)}
-            disabled={loading}
-          >
-            {isLogin ? "Don't have an account? Register" : "Already have an account? Sign In"}
-          </button>
-          
-          <p className="help-text">
-            {isLogin ? 'Forgot your password? Contact your system administrator.' : 'Create a new account to access the system.'}
-          </p>
         </div>
+
+        <div className="form-group">
+          <label htmlFor="password">Password</label>
+          <div className="input-wrapper">
+            <i className="fas fa-lock input-icon"></i>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              className="form-control"
+              placeholder="Enter your password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+              disabled={loading}
+            />
+          </div>
+        </div>
+
+        <div className="checkbox-group">
+          <div className="remember-me">
+            <input
+              type="checkbox"
+              id="remember"
+              name="remember"
+              checked={formData.remember}
+              onChange={handleChange}
+              disabled={loading}
+            />
+            <label htmlFor="remember">Remember me</label>
+          </div>
+          <a href="#" className="forgot-link">Forgot password?</a>
+        </div>
+
+        <button type="submit" className="btn-login" disabled={loading}>
+          {loading ? (
+            <>
+              <span className="spinner"></span>
+              Signing In...
+            </>
+          ) : (
+            <>
+              <i className="fas fa-sign-in-alt btn-icon"></i>
+              {isLogin ? 'Sign In' : 'Create Account'}
+            </>
+          )}
+        </button>
+      </form>
+
+      <div className="login-footer">
+        <p className="toggle-mode">
+          {isLogin ? "Don't have an account?" : "Already have an account?"}
+          <a href="#" onClick={(e) => { e.preventDefault(); setIsLogin(!isLogin); }}>
+            {isLogin ? 'Sign up' : 'Sign in'}
+          </a>
+        </p>
       </div>
     </div>
   );
