@@ -1,41 +1,79 @@
 .uplink-container {
-  font-family: Arial, sans-serif;
-  background-color: #000000; /* Black */
-  color: #ffffff; /* White */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 100%);
+  color: #ffffff;
   width: 100%;
   max-width: 1400px;
   margin: 0 auto;
-  border: 2px solid #666666; /* Gray border */
+  padding: 20px;
+  min-height: 100vh;
 }
 
 .table-header {
-  background: linear-gradient(135deg, #c41e3a 0%, #8b0000 100%); /* Red gradient */
-  padding: 15px 20px;
-  margin: 0;
+  background: linear-gradient(135deg, #222 0%, #333 100%);
+  padding: 20px 30px;
+  margin: 0 0 30px 0;
+  border-radius: 15px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: 1px solid #444;
+  position: relative;
+  overflow: hidden;
+}
+
+.table-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #ffc107, #ff8c00);
 }
 
 .table-header h1 {
   margin: 0;
-  color: #ffffff;
-  font-size: 24px;
-  font-weight: bold;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  color: #ffc107;
+  font-size: 2.5rem;
+  font-weight: 700;
+  background: linear-gradient(45deg, #ffc107, #ff8c00);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .uplink-table {
   width: 100%;
   border-collapse: collapse;
-  background-color: #000000;
+  background: linear-gradient(135deg, #111 0%, #1a1a1a 100%);
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: 1px solid #333;
 }
 
 .uplink-table th {
-  background: linear-gradient(135deg, #b38a00 0%, #3b2f00 100%); /* Gold gradient */
-  color: #ffffff;
-  font-weight: bold;
-  padding: 12px 8px;
+  background: linear-gradient(135deg, #0a0a0a 0%, #2a2a2a 50%, #3a3a3a 100%);
+  color: #ffc107;
+  font-weight: 600;
+  padding: 15px 12px;
   text-align: center;
-  border: 1px solid #666666;
+  border: 1px solid #444;
   font-size: 14px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.uplink-table th::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #ffc107, #ff8c00);
 }
 
 .uplink-table th.uplink-col {
@@ -72,22 +110,44 @@
   font-size: 11px;
   font-weight: normal;
   line-height: 1.2;
+  color: #ccc;
 }
 
 .sub-headers th {
-  background: linear-gradient(135deg, #9d7c0f 0%, #b8860b 100%); /* Muted gold gradient */
-  padding: 8px;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 50%, #3a3a3a 100%);
+  padding: 10px 8px;
   font-size: 12px;
+  color: #ffc107;
+  position: relative;
+  overflow: hidden;
+}
+
+.sub-headers th::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, #ffc107, #ff8c00);
 }
 
 .uplink-table td {
-  padding: 10px 8px;
-  border: 1px solid #444444;
+  padding: 12px 8px;
+  border: 1px solid #333;
   vertical-align: top;
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+  transition: background 0.2s ease;
 }
 
+.uplink-table tbody tr:hover td {
+  background: linear-gradient(135deg, #151515 0%, #252525 100%);
+}
+
+/* Enhanced yellow mix for specific columns */
 .uplink-name {
-  background-color: #333333; /* Dark gray */
+  background: linear-gradient(135deg, #0d0d0d 0%, #1d1d1d 100%), 
+              linear-gradient(45deg, rgba(255, 193, 7, 0.06) 0%, transparent 40%, rgba(255, 193, 7, 0.06) 60%, transparent 100%) !important;
   color: #ffffff;
   text-align: left;
   font-weight: 500;
@@ -100,65 +160,227 @@
 }
 
 .uptime-good {
-  background-color: #00b050; /* Green for 100% */
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
   color: #ffffff;
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
 }
 
 .uptime-warning {
-  background-color: #ffc000; /* Amber for <100% */
+  background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%) !important;
   color: #000000;
+  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
 }
 
 .planned,
 .unplanned,
 .total-downtime {
-  background-color: #2c2c2c; /* Very dark gray */
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%), 
+              linear-gradient(45deg, rgba(255, 193, 7, 0.07) 0%, transparent 35%, rgba(255, 193, 7, 0.07) 65%, transparent 100%) !important;
   color: #ffffff;
   text-align: center;
 }
 
 .remarks {
-  background-color: #2c2c2c;
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%), 
+              linear-gradient(45deg, rgba(255, 193, 7, 0.09) 0%, transparent 25%, rgba(255, 193, 7, 0.09) 75%, transparent 100%) !important;
   color: #ffffff;
   text-align: left;
   line-height: 1.4;
 }
 
 .planned-label {
-  color: #f9cb16; /* Yellow */
+  color: #28a745;
   font-weight: bold;
 }
 
 .unplanned-label {
-  color: #f9cb16; /* Yellow */
+  color: #ffc107;
   font-weight: bold;
 }
 
 .downtime-row .uplink-name {
-  background-color: #3d3d3d;
+  background: linear-gradient(135deg, #0f0f0f 0%, #1f1f1f 100%), 
+              linear-gradient(45deg, rgba(255, 193, 7, 0.08) 0%, transparent 35%, rgba(255, 193, 7, 0.08) 65%, transparent 100%) !important;
 }
 
 .downtime-row .planned,
 .downtime-row .unplanned,
 .downtime-row .total-downtime,
 .downtime-row .remarks {
-  background-color: #353535;
+  background: linear-gradient(135deg, #0c0c0c 0%, #1c1c1c 100%), 
+              linear-gradient(45deg, rgba(255, 193, 7, 0.11) 0%, transparent 30%, rgba(255, 193, 7, 0.11) 70%, transparent 100%) !important;
+}
+
+/* Yellow-mixed black background for table columns */
+.uplink-table tbody tr td:not(.uptime):not(.uptime-good):not(.uptime-warning) {
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%), 
+              linear-gradient(45deg, rgba(255, 193, 7, 0.08) 0%, transparent 30%, rgba(255, 193, 7, 0.08) 70%, transparent 100%) !important;
+}
+
+.uplink-table tbody tr:hover td:not(.uptime):not(.uptime-good):not(.uptime-warning) {
+  background: linear-gradient(135deg, #151515 0%, #252525 100%), 
+              linear-gradient(45deg, rgba(255, 193, 7, 0.12) 0%, transparent 30%, rgba(255, 193, 7, 0.12) 70%, transparent 100%) !important;
+}
+
+.downtime-row td:not(.uptime):not(.uptime-good):not(.uptime-warning) {
+  background: linear-gradient(135deg, #0c0c0c 0%, #1c1c1c 100%), 
+              linear-gradient(45deg, rgba(255, 193, 7, 0.10) 0%, transparent 30%, rgba(255, 193, 7, 0.10) 70%, transparent 100%) !important;
 }
 
 .table-footer {
-  background: linear-gradient(135deg, #8b0000 0%, #c41e3a 100%); /* Red footer */
-  padding: 12px 20px;
+  background: linear-gradient(135deg, #222 0%, #333 100%);
+  padding: 15px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  color: #f9cb16; /* Yellow text */
-  font-weight: bold;
+  color: #ffc107;
+  font-weight: 600;
   font-size: 14px;
+  border-top: 1px solid #444;
 }
 
 .footer-left,
 .footer-right {
-  color: #f9cb16;
+  color: #ffc107;
+}
+
+/* Category section styling */
+.category-section {
+  background: linear-gradient(135deg, #222 0%, #333 100%);
+  border-radius: 20px;
+  padding: 30px;
+  margin-bottom: 40px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: 1px solid #444;
+}
+
+.category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.category-title {
+  color: #ffc107;
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.download-btn {
+  background: linear-gradient(45deg, #ffc107, #ff8c00);
+  color: #222;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.download-btn:hover {
+  background: linear-gradient(45deg, #ff8c00, #e67e22);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 193, 7, 0.4);
+}
+
+.download-btn:active {
+  transform: translateY(0);
+}
+
+/* Action button styling */
+.action-btn {
+  background: linear-gradient(45deg, #007bff, #0056b3);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+}
+
+.action-btn:hover {
+  background: linear-gradient(45deg, #0056b3, #004085);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+}
+
+/* Modal styling */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.modal-content {
+  background: linear-gradient(135deg, #222 0%, #333 100%);
+  border-radius: 20px;
+  padding: 30px;
+  max-width: 90%;
+  max-height: 90%;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: 1px solid #444;
+  position: relative;
+}
+
+.close {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  color: #ffc107;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.close:hover {
+  color: #ff8c00;
+}
+
+.modal-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 20px;
+}
+
+.modal-table th {
+  background: linear-gradient(135deg, #444 0%, #555 100%);
+  color: #ffc107;
+  padding: 12px 8px;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid #ffc107;
+}
+
+.modal-table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #444;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.modal-table tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 /* Responsive adjustments */
@@ -169,7 +391,7 @@
 
   .uplink-table th,
   .uplink-table td {
-    padding: 8px 6px;
+    padding: 10px 6px;
   }
 }
 
@@ -177,20 +399,41 @@
   .uplink-container {
     margin: 10px;
     font-size: 11px;
+    padding: 15px;
   }
 
   .table-header h1 {
-    font-size: 18px;
+    font-size: 1.8rem;
+  }
+
+  .category-header {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+
+  .category-title {
+    font-size: 1.5rem;
+  }
+
+  .download-btn {
+    padding: 10px 20px;
+    font-size: 0.9rem;
   }
 
   .uplink-table th,
   .uplink-table td {
-    padding: 6px 4px;
+    padding: 8px 4px;
   }
 
   .table-footer {
     flex-direction: column;
-    gap: 5px;
+    gap: 10px;
     text-align: center;
+  }
+
+  .modal-content {
+    padding: 20px;
+    margin: 10px;
   }
 }

@@ -202,18 +202,78 @@
     border: 1px solid #444;
   }
   
-  .chart-container h2 {
-    color: #ffc107;
-    text-align: center;
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 25px;
+  }
+
+  .chart-header h2 {
+    color: #ffc107;
     font-size: 1.5rem;
     font-weight: 600;
+    margin: 0;
+  }
+
+  .chart-download-buttons {
+    display: flex;
+    gap: 10px;
+  }
+
+  .chart-download-btn {
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .chart-download-btn.comprehensive {
+    background: linear-gradient(45deg, #28a745, #20c997);
+    color: white;
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+  }
+
+  .chart-download-btn.comprehensive:hover {
+    background: linear-gradient(45deg, #20c997, #17a2b8);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+  }
+
+  .chart-download-btn.chart-only {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    color: white;
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+  }
+
+  .chart-download-btn.chart-only:hover {
+    background: linear-gradient(45deg, #0056b3, #004085);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+  }
+
+  .chart-download-btn:active {
+    transform: translateY(0);
   }
   
   .chart-wrapper {
     position: relative;
     height: 300px;
     margin-bottom: 20px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  /* amCharts specific styles */
+  .chart-wrapper > div {
+    border-radius: 10px;
   }
   
   .chart-legend {
@@ -439,6 +499,26 @@
       padding: 10px 20px;
       font-size: 0.9rem;
     }
+
+    .chart-header {
+      flex-direction: column;
+      gap: 15px;
+      text-align: center;
+    }
+
+    .chart-header h2 {
+      font-size: 1.3rem;
+    }
+
+    .chart-download-buttons {
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .chart-download-btn {
+      padding: 10px 20px;
+      font-size: 0.9rem;
+    }
     
     .stats-section {
       grid-template-columns: 1fr;
@@ -513,3 +593,46 @@
   .incidents-table-wrapper::-webkit-scrollbar-thumb:hover {
     background: #888;
   }
+
+.category-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 30px;
+  align-items: center;
+}
+
+.category-tab-btn {
+  background: linear-gradient(45deg, #222, #333);
+  color: #ffc107;
+  border: 2px solid #ffc107;
+  border-radius: 20px;
+  padding: 10px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.category-tab-btn.active, .category-tab-btn:hover {
+  background: linear-gradient(45deg, #ffc107, #ff8c00);
+  color: #222;
+  border-color: #ff8c00;
+}
+
+.add-btn {
+  background: linear-gradient(45deg, #28a745, #20c997);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 10px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-left: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.add-btn:hover {
+  background: linear-gradient(45deg, #20c997, #17a2b8);
+  color: #fff;
+}

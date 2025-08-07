@@ -123,12 +123,17 @@ const UplinkAvailabilityTable = () => {
         <h1>Uplink Availability</h1>
       </div>
       {categories.map(cat => (
-        <div key={cat} style={{ marginBottom: 40 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <h2 style={{ color: '#ffc107', margin: 0 }}>{cat}</h2>
-            <button onClick={() => handleDownloadImage(cat)} style={{ background: 'linear-gradient(135deg, #ffc107, #ff8c00)', color: '#222', fontWeight: 700, border: 'none', borderRadius: 8, padding: '8px 18px', cursor: 'pointer' }}>📷 Download Table as Image</button>
+        <div key={cat} className="category-section">
+          <div className="category-header">
+            <h2 className="category-title">{cat}</h2>
+            <button 
+              onClick={() => handleDownloadImage(cat)} 
+              className="download-btn"
+            >
+              📷 Download Table as Image
+            </button>
           </div>
-          <div ref={el => (tableRefs.current[cat] = el)} style={{ background: '#222', padding: 20, borderRadius: 12 }}>
+          <div ref={el => (tableRefs.current[cat] = el)}>
             <table className="uplink-table">
               <thead>
                 <tr>
@@ -177,7 +182,12 @@ const UplinkAvailabilityTable = () => {
                       ))}
                     </td>
                     <td>
-                      <button onClick={() => handleViewIncidents(row.subValue)} style={{ background: 'linear-gradient(135deg, #3498db, #2980b9)', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', fontWeight: 600, cursor: 'pointer' }}>View Incidents</button>
+                      <button 
+                        onClick={() => handleViewIncidents(row.subValue)} 
+                        className="action-btn"
+                      >
+                        View Incidents
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -192,26 +202,26 @@ const UplinkAvailabilityTable = () => {
       ))}
       {/* Modal for viewing incidents */}
       {showModal && (
-        <div className="modal" style={{ zIndex: 9999 }}>
+        <div className="modal">
           <div className="modal-content">
             <span className="close" onClick={() => setShowModal(false)}>&times;</span>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h2>Incidents for {modalUplink}</h2>
+            <div className="category-header">
+              <h2 className="category-title">Incidents for {modalUplink}</h2>
               <button
                 onClick={async () => {
                   if (!modalTableRef.current) return;
-                  const canvas = await html2canvas(modalTableRef.current, { backgroundColor: '#fff' });
+                  const canvas = await html2canvas(modalTableRef.current, { backgroundColor: '#222' });
                   const link = document.createElement('a');
                   link.download = `incidents-for-${modalUplink.replace(/\s/g, '_')}.png`;
                   link.href = canvas.toDataURL('image/png');
                   link.click();
                 }}
-                style={{ background: 'linear-gradient(135deg, #ffc107, #ff8c00)', color: '#222', fontWeight: 700, border: 'none', borderRadius: 8, padding: '8px 18px', cursor: 'pointer' }}
+                className="download-btn"
               >
                 📷 Download Image
               </button>
             </div>
-            <table ref={modalTableRef} className="modal-table" style={{ width: '100%', borderCollapse: 'collapse', marginTop: 10 }}>
+            <table ref={modalTableRef} className="modal-table">
               <thead>
                 <tr>
                   <th>Category</th>
