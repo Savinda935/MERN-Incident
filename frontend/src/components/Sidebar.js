@@ -29,8 +29,8 @@ const Sidebar = ({ activeMenu, onMenuChange, currentUser, onLogout }) => {
       icon: '📈',
       path: '/reports',
       submenu: [
-        { id: 'availability-report', title: 'Availability Report', path: '/reports/availability' },
-        { id: 'downtime-report', title: 'Downtime Report', path: '/reports/downtime' },
+        { id: 'availability-report', title: 'Availability Report (Chart)', path: '/reports/availability' },
+        { id: 'downtime-report', title: 'Downtime Report (Availability)', path: '/reports/downtime' },
         { id: 'monthly-summary', title: 'Monthly Summary', path: '/reports/monthly' }
       ]
     },
