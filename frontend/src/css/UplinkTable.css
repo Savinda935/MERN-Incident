@@ -294,6 +294,20 @@
   transform: translateY(0);
 }
 
+.download-btn:disabled {
+  background: linear-gradient(45deg, #666, #888);
+  color: #aaa;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.download-btn:disabled:hover {
+  background: linear-gradient(45deg, #666, #888);
+  transform: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
 /* Action button styling */
 .action-btn {
   background: linear-gradient(45deg, #007bff, #0056b3);

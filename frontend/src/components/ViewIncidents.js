@@ -238,13 +238,62 @@ const ViewIncidents = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this incident?')) return;
+    const incident = incidents.find(inc => inc.id === id);
+    if (!incident) {
+      alert('Incident not found!');
+      return;
+    }
+
+    const warningMessage = `⚠️ WARNING: You are about to delete this incident permanently!\n\n` +
+      `Category: ${incident.category}\n` +
+      `Sub-Value: ${incident.subValue}\n` +
+      `Down Type: ${incident.downType}\n` +
+      `Down Time: ${formatDateTime(incident.downTimeDate)}\n` +
+      `Up Time: ${formatDateTime(incident.upTimeDate)}\n` +
+      `Escalated Person: ${incident.escalatedPerson}\n` +
+      `Remarks: ${incident.remarks || 'None'}\n\n` +
+      `This action cannot be undone. Are you sure you want to delete this incident?`;
+
+    if (!window.confirm(warningMessage)) {
+      return;
+    }
+
     try {
       await axios.delete(`http://localhost:5000/api/incidents/${id}`);
-      alert('Incident deleted successfully');
+      alert('✅ Incident deleted successfully!');
       loadIncidents();
     } catch (error) {
-      alert('Error: ' + error.message);
+      alert('❌ Error deleting incident: ' + error.message);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (filteredIncidents.length === 0) {
+      alert('No incidents to delete!');
+      return;
+    }
+
+    const warningMessage = `⚠️ WARNING: You are about to delete ${filteredIncidents.length} incident(s) permanently!\n\n` +
+      `This will delete all incidents that match your current filters:\n` +
+      `• Category: ${categoryFilter || 'All'}\n` +
+      `• Sub-Value: ${subValueFilter || 'All'}\n` +
+      `• Down Type: ${downTypeFilter || 'All'}\n\n` +
+      `This action cannot be undone. Are you sure you want to delete these incidents?`;
+
+    if (!window.confirm(warningMessage)) {
+      return;
+    }
+
+    try {
+      const deletePromises = filteredIncidents.map(incident => 
+        axios.delete(`http://localhost:5000/api/incidents/${incident.id}`)
+      );
+      
+      await Promise.all(deletePromises);
+      alert(`✅ Successfully deleted ${filteredIncidents.length} incident(s)!`);
+      loadIncidents();
+    } catch (error) {
+      alert('❌ Error deleting incidents: ' + error.message);
     }
   };
 
@@ -505,6 +554,25 @@ const ViewIncidents = () => {
         <button onClick={downloadDetailedDowntimeTable} style={{background: 'linear-gradient(135deg, #9b59b6, #8e44ad)'}}>
           📊 Download Detailed Table
         </button>
+        <button 
+          onClick={handleBulkDelete} 
+          style={{
+            background: 'linear-gradient(135deg, #e74c3c, #c0392b)',
+            color: 'white',
+            padding: '12px 20px',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '600',
+            transition: 'all 0.3s ease',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
+          }}
+          disabled={filteredIncidents.length === 0}
+        >
+          🗑️ Delete All ({filteredIncidents.length})
+        </button>
       </div>
       <div id="summary">
         <h3>Summary</h3>
@@ -633,10 +701,42 @@ const ViewIncidents = () => {
                   onClick={() =>
                     setEditModal({ open: true, incident })
                   }
+                  style={{
+                    background: 'linear-gradient(135deg, #f39c12, #e67e22)',
+                    color: 'white',
+                    padding: '6px 12px',
+                    margin: '0 3px',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    transition: 'all 0.3s ease'
+                  }}
                 >
-                  Edit
+                  ✏️ Edit
                 </button>
-                <button onClick={() => handleDelete(incident.id)}>Delete</button>
+                <button 
+                  onClick={() => handleDelete(incident.id)}
+                  style={{
+                    background: 'linear-gradient(135deg, #e74c3c, #c0392b)',
+                    color: 'white',
+                    padding: '6px 12px',
+                    margin: '0 3px',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  🗑️ Delete
+                </button>
               </td>
             </tr>
           ))}

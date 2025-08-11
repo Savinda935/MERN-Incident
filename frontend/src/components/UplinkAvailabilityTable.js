@@ -13,6 +13,7 @@ const UplinkAvailabilityTable = () => {
   const [incidents, setIncidents] = useState([]);
   const [subValueDowntime, setSubValueDowntime] = useState({});
   const [categoryTables, setCategoryTables] = useState({});
+  const [dataLoaded, setDataLoaded] = useState(false);
   const tableRefs = useRef({});
   const [modalIncidents, setModalIncidents] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -22,6 +23,7 @@ const UplinkAvailabilityTable = () => {
   useEffect(() => {
     axios.get('http://localhost:5000/api/incidents').then(res => {
       setIncidents(res.data);
+      setDataLoaded(true);
     });
   }, []);
 
@@ -102,12 +104,331 @@ const UplinkAvailabilityTable = () => {
   }
 
   const handleDownloadImage = async (cat) => {
-    if (!tableRefs.current[cat]) return;
-    const canvas = await html2canvas(tableRefs.current[cat], { backgroundColor: '#222' });
-    const link = document.createElement('a');
-    link.download = `${cat.replace(/\s/g, '_').toLowerCase()}-uplink-availability-table.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    const element = tableRefs.current[cat];
+    
+    if (!element || !dataLoaded) {
+      alert("Table isn't ready for download yet. Please wait for data to load.");
+      return;
+    }
+
+    // Ensure element has size
+    const { offsetWidth, offsetHeight } = element;
+    console.log(`Element dimensions: ${offsetWidth}x${offsetHeight}`);
+    
+    if (offsetWidth === 0 || offsetHeight === 0) {
+      alert("Table isn't visible or has no size. Please ensure the table is fully loaded.");
+      return;
+    }
+
+    // Wait a bit to ensure rendering is complete
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    try {
+      // Force a reflow to ensure proper rendering
+      element.style.display = 'none';
+      // eslint-disable-next-line no-unused-expressions
+      element.offsetHeight; // Force reflow
+      element.style.display = '';
+
+      const canvas = await html2canvas(element, { 
+        backgroundColor: '#222',
+        scale: 1, // Reduced scale for better compatibility
+        useCORS: true,
+        allowTaint: true,
+        logging: true, // Enable logging for debugging
+        width: offsetWidth,
+        height: offsetHeight,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: document.documentElement.offsetWidth,
+        windowHeight: document.documentElement.offsetHeight
+      });
+      
+      const link = document.createElement('a');
+      link.download = `${cat.replace(/\s/g, '_').toLowerCase()}-uplink-availability-table.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (error) {
+      console.error('Error generating image:', error);
+      
+      // Try alternative approach with simpler options
+      try {
+        console.log('Trying alternative approach...');
+        const canvas = await html2canvas(element, { 
+          backgroundColor: '#222',
+          scale: 1,
+          useCORS: false,
+          allowTaint: false
+        });
+        
+        const link = document.createElement('a');
+        link.download = `${cat.replace(/\s/g, '_').toLowerCase()}-uplink-availability-table.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } catch (secondError) {
+        console.error('Second attempt failed:', secondError);
+        
+        // Try creating a simplified version for download
+        try {
+          console.log('Trying simplified table approach...');
+          await downloadSimplifiedTable(cat);
+        } catch (thirdError) {
+          console.error('All attempts failed:', thirdError);
+          alert('Failed to generate image. The table might have complex styling that prevents image generation.');
+        }
+      }
+    }
+  };
+
+  const downloadSimplifiedTable = async (cat) => {
+    // Create a simplified table structure for better compatibility
+    const tableData = categoryTables[cat] || [];
+    if (tableData.length === 0) {
+      alert('No data available for this category.');
+      return;
+    }
+
+    // Create a temporary container with the same styling as original
+    const tempContainer = document.createElement('div');
+    tempContainer.style.cssText = `
+      position: absolute;
+      left: -9999px;
+      top: -9999px;
+      background: linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 100%);
+      color: #ffffff;
+      padding: 30px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      border: 1px solid #444;
+      max-width: 1400px;
+    `;
+
+    // Add header
+    const header = document.createElement('div');
+    header.style.cssText = `
+      background: linear-gradient(135deg, #222 0%, #333 100%);
+      padding: 20px 30px;
+      margin: 0 0 30px 0;
+      border-radius: 15px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      border: 1px solid #444;
+      position: relative;
+      overflow: hidden;
+    `;
+    
+    const headerTitle = document.createElement('h1');
+    headerTitle.textContent = 'Uplink Availability';
+    headerTitle.style.cssText = `
+      margin: 0;
+      color: #ffc107;
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(45deg, #ffc107, #ff8c00);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    `;
+    header.appendChild(headerTitle);
+    tempContainer.appendChild(header);
+
+    // Add category title
+    const categoryTitle = document.createElement('h2');
+    categoryTitle.textContent = cat;
+    categoryTitle.style.cssText = `
+      color: #ffc107;
+      font-size: 1.8rem;
+      font-weight: 600;
+      margin: 0 0 25px 0;
+    `;
+    tempContainer.appendChild(categoryTitle);
+
+    const table = document.createElement('table');
+    table.style.cssText = `
+      width: 100%;
+      border-collapse: collapse;
+      background: linear-gradient(135deg, #111 0%, #1a1a1a 100%);
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      border: 1px solid #333;
+    `;
+
+    // Create header
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    const headers = ['Uplink', 'Uptime', 'Planned', 'Unplanned', 'Total Downtime', 'Remarks'];
+    
+    headers.forEach((headerText, index) => {
+      const th = document.createElement('th');
+      th.textContent = headerText;
+      th.style.cssText = `
+        background: linear-gradient(135deg, #0a0a0a 0%, #2a2a2a 50%, #3a3a3a 100%);
+        color: #ffc107;
+        font-weight: 600;
+        padding: 15px 12px;
+        text-align: center;
+        border: 1px solid #444;
+        font-size: 14px;
+        position: relative;
+        overflow: hidden;
+      `;
+      
+      // Add yellow border at top
+      const border = document.createElement('div');
+      border.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, #ffc107, #ff8c00);
+      `;
+      th.appendChild(border);
+      
+      if (index === 0) {
+        th.style.textAlign = 'left';
+        th.style.width = '25%';
+      } else if (index === 1) {
+        th.style.width = '8%';
+      } else if (index === 2 || index === 3) {
+        th.style.width = '8%';
+      } else if (index === 4) {
+        th.style.width = '12%';
+      } else if (index === 5) {
+        th.style.width = '35%';
+      }
+      
+      headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    // Create body
+    const tbody = document.createElement('tbody');
+    tableData.forEach(row => {
+      const tr = document.createElement('tr');
+      tr.style.cssText = `
+        background: ${row.hasDowntime ? 'linear-gradient(135deg, #0c0c0c 0%, #1c1c1c 100%)' : 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)'};
+      `;
+
+      const cells = [
+        row.subValue,
+        `${row.uptime}%`,
+        row.plannedDowntime,
+        row.unplannedDowntime,
+        row.totalDowntime,
+        row.remarks.replace(/\n/g, '; ')
+      ];
+
+      cells.forEach((cellText, index) => {
+        const td = document.createElement('td');
+        td.textContent = cellText;
+        
+        let cellStyle = `
+          padding: 12px 8px;
+          border: 1px solid #333;
+          vertical-align: top;
+          transition: background 0.2s ease;
+        `;
+        
+        if (index === 0) {
+          // Uplink name column
+          cellStyle += `
+            background: linear-gradient(135deg, #0d0d0d 0%, #1d1d1d 100%), 
+                        linear-gradient(45deg, rgba(255, 193, 7, 0.06) 0%, transparent 40%, rgba(255, 193, 7, 0.06) 60%, transparent 100%) !important;
+            color: #ffffff;
+            text-align: left;
+            font-weight: 500;
+          `;
+        } else if (index === 1) {
+          // Uptime column
+          const isGood = parseFloat(row.uptime) === 100;
+          cellStyle += `
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+            ${isGood ? 
+              'background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important; color: #ffffff;' : 
+              'background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%) !important; color: #000000;'
+            }
+            box-shadow: 0 2px 8px ${isGood ? 'rgba(40, 167, 69, 0.3)' : 'rgba(255, 193, 7, 0.3)'};
+          `;
+        } else if (index === 2 || index === 3 || index === 4) {
+          // Planned, Unplanned, Total Downtime columns
+          cellStyle += `
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%), 
+                        linear-gradient(45deg, rgba(255, 193, 7, 0.07) 0%, transparent 35%, rgba(255, 193, 7, 0.07) 65%, transparent 100%) !important;
+            color: #ffffff;
+            text-align: center;
+          `;
+        } else if (index === 5) {
+          // Remarks column
+          cellStyle += `
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%), 
+                        linear-gradient(45deg, rgba(255, 193, 7, 0.09) 0%, transparent 25%, rgba(255, 193, 7, 0.09) 75%, transparent 100%) !important;
+            color: #ffffff;
+            text-align: left;
+            line-height: 1.4;
+          `;
+        }
+        
+        td.style.cssText = cellStyle;
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+
+    tempContainer.appendChild(table);
+
+    // Add footer
+    const footer = document.createElement('div');
+    footer.style.cssText = `
+      background: linear-gradient(135deg, #222 0%, #333 100%);
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #ffc107;
+      font-weight: 600;
+      font-size: 14px;
+      border-top: 1px solid #444;
+      margin-top: 20px;
+      border-radius: 10px;
+    `;
+    
+    const footerLeft = document.createElement('div');
+    footerLeft.textContent = 'Network Operation Centre';
+    footerLeft.style.color = '#ffc107';
+    
+    const footerRight = document.createElement('div');
+    footerRight.textContent = new Date().toLocaleString('default', { year: 'numeric', month: 'long' });
+    footerRight.style.color = '#ffc107';
+    
+    footer.appendChild(footerLeft);
+    footer.appendChild(footerRight);
+    tempContainer.appendChild(footer);
+
+    document.body.appendChild(tempContainer);
+
+    try {
+      const canvas = await html2canvas(tempContainer, {
+        backgroundColor: '#0c0c0c',
+        scale: 2,
+        useCORS: false,
+        allowTaint: false,
+        width: tempContainer.offsetWidth,
+        height: tempContainer.offsetHeight
+      });
+
+      const link = document.createElement('a');
+      link.download = `${cat.replace(/\s/g, '_').toLowerCase()}-uplink-availability-table.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } finally {
+      document.body.removeChild(tempContainer);
+    }
   };
 
   const handleViewIncidents = (subValue) => {
@@ -129,6 +450,7 @@ const UplinkAvailabilityTable = () => {
             <button 
               onClick={() => handleDownloadImage(cat)} 
               className="download-btn"
+              disabled={!dataLoaded}
             >
               📷 Download Table as Image
             </button>
@@ -210,11 +532,63 @@ const UplinkAvailabilityTable = () => {
               <button
                 onClick={async () => {
                   if (!modalTableRef.current) return;
-                  const canvas = await html2canvas(modalTableRef.current, { backgroundColor: '#222' });
-                  const link = document.createElement('a');
-                  link.download = `incidents-for-${modalUplink.replace(/\s/g, '_')}.png`;
-                  link.href = canvas.toDataURL('image/png');
-                  link.click();
+                  
+                  const { offsetWidth, offsetHeight } = modalTableRef.current;
+                  console.log(`Modal element dimensions: ${offsetWidth}x${offsetHeight}`);
+                  
+                  if (offsetWidth === 0 || offsetHeight === 0) {
+                    alert("Modal table isn't visible or has no size.");
+                    return;
+                  }
+
+                  // Wait a bit to ensure rendering is complete
+                  await new Promise(resolve => setTimeout(resolve, 100));
+                  
+                  try {
+                    // Force a reflow to ensure proper rendering
+                    modalTableRef.current.style.display = 'none';
+                    // eslint-disable-next-line no-unused-expressions
+                    modalTableRef.current.offsetHeight; // Force reflow
+                    modalTableRef.current.style.display = '';
+
+                    const canvas = await html2canvas(modalTableRef.current, { 
+                      backgroundColor: '#222',
+                      scale: 1,
+                      useCORS: true,
+                      allowTaint: true,
+                      logging: true,
+                      width: offsetWidth,
+                      height: offsetHeight,
+                      scrollX: 0,
+                      scrollY: 0,
+                      windowWidth: document.documentElement.offsetWidth,
+                      windowHeight: document.documentElement.offsetHeight
+                    });
+                    const link = document.createElement('a');
+                    link.download = `incidents-for-${modalUplink.replace(/\s/g, '_')}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                  } catch (error) {
+                    console.error('Error generating modal image:', error);
+                    
+                    // Try alternative approach
+                    try {
+                      console.log('Trying alternative approach for modal...');
+                      const canvas = await html2canvas(modalTableRef.current, { 
+                        backgroundColor: '#222',
+                        scale: 1,
+                        useCORS: false,
+                        allowTaint: false
+                      });
+                      const link = document.createElement('a');
+                      link.download = `incidents-for-${modalUplink.replace(/\s/g, '_')}.png`;
+                      link.href = canvas.toDataURL('image/png');
+                      link.click();
+                    } catch (secondError) {
+                      console.error('Second attempt failed for modal:', secondError);
+                      alert('Failed to generate modal image. The table might have complex styling that prevents image generation.');
+                    }
+                  }
                 }}
                 className="download-btn"
               >
