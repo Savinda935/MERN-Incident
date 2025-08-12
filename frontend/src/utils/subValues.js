@@ -13,7 +13,7 @@ export const subValues = {
       "CONSUMER (FOSTER LANE) - P 84",
       "AVENTURA (FOSTER LANE) - P 85",
       "AGRO (FOSTER LANE) - P 86",
-      "DPL HO (DEANS RD) - P 87",
+      "DPL HO (DEANS RD) - P 87",  
       "TTEL HO (DEANS RD) - P 88",
       "KVPL (400 DEANS RD) - P 89",
       "CORE ROUTERS (MPLS) - P 103",
@@ -21,6 +21,7 @@ export const subValues = {
       "SERVER FARM (SW STACK) 1 - P 109",
       "DEANS RD (SW) - P 122",
       "SERVER FARM (SW STACK) 2 - P 123",
+      "HBSI (TWE 1/6/0/24) | (TWE 1/6/0/26)",
     ],
     "WAN Firewall": [
       "ADV-3PL-Kelaniya",
