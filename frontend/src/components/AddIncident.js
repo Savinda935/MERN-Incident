@@ -299,7 +299,7 @@ const AddIncident = () => {
                 maxHeight: '150px', 
                 overflowY: 'auto', 
                 background: '#f8f9fa', 
-                padding: '10px', 
+                padding: '12px', 
                 borderRadius: '7px',
                 border: '1px solid #ddd'
               }}>
