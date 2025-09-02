@@ -38,7 +38,7 @@ const AddIncident = () => {
     };
 
     try {
-      const response = await axios.post('http://localhost:5000/api/incidents', incident);
+      const response = await axios.post('https://mern-incident-sable.vercel.app/api/incidents', incident);
       setMessage(response.data.message || 'Incident added successfully!');
       
       // Reset form completely
@@ -93,7 +93,7 @@ const AddIncident = () => {
           escalatedPerson: "-",
           remarks: "-",
         };
-        return axios.post('http://localhost:5000/api/incidents', incident);
+        return axios.post('https://mern-incident-sable.vercel.app/api/incidents', incident);
       });
 
       await Promise.all(promises);
@@ -117,7 +117,7 @@ const AddIncident = () => {
 
   const loadPreviousMonthData = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/incidents');
+      const response = await axios.get('https://mern-incident-sable.vercel.app/api/incidents');
       const allIncidents = response.data;
       
       // Get previous month
@@ -161,7 +161,7 @@ const AddIncident = () => {
           escalatedPerson: incident.escalatedPerson,
           remarks: incident.remarks,
         };
-        return axios.post('http://localhost:5000/api/incidents', newIncident);
+        return axios.post('https://mern-incident-sable.vercel.app/api/incidents', newIncident);
       });
 
       await Promise.all(promises);
