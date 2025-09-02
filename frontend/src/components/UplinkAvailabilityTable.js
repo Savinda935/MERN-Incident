@@ -21,7 +21,7 @@ const UplinkAvailabilityTable = () => {
   const modalTableRef = useRef(null);
 
   useEffect(() => {
-    axios.get('http://localhost:5000/api/incidents').then(res => {
+    axios.get('https://mern-incident-sable.vercel.app/api/incidents').then(res => {
       setIncidents(res.data);
       setDataLoaded(true);
     });

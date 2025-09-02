@@ -318,7 +318,7 @@ const AvailabilityReport = () => {
   const [allIncidents, setAllIncidents] = useState([]);
 
   useEffect(() => {
-    axios.get('http://localhost:5000/api/incidents').then(res => {
+    axios.get('https://mern-incident-sable.vercel.app/api/incidents').then(res => {
       setAllIncidents(res.data);
       const data = calculateMonthlyAvailability(res.data, 'Core Switch');
       setAvailabilities(data);

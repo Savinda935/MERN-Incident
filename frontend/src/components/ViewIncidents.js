@@ -52,7 +52,7 @@ const ViewIncidents = () => {
 
   const loadIncidents = async () => {
     try { 
-      const response = await axios.get('http://localhost:5000/api/incidents');
+      const response = await axios.get('https://mern-incident-sable.vercel.app/api/incidents');
       setIncidents(response.data);
       setFilteredIncidents(response.data);
     } catch (error) {
@@ -259,7 +259,7 @@ const ViewIncidents = () => {
     }
 
     try {
-      await axios.delete(`http://localhost:5000/api/incidents/${id}`);
+      await axios.delete(`https://mern-incident-sable.vercel.app/api/incidents/${id}`);
       alert('✅ Incident deleted successfully!');
       loadIncidents();
     } catch (error) {
@@ -286,7 +286,7 @@ const ViewIncidents = () => {
 
     try {
       const deletePromises = filteredIncidents.map(incident => 
-        axios.delete(`http://localhost:5000/api/incidents/${incident.id}`)
+        axios.delete(`https://mern-incident-sable.vercel.app/api/incidents/${incident.id}`)
       );
       
       await Promise.all(deletePromises);
@@ -312,7 +312,7 @@ const ViewIncidents = () => {
     };
 
     try {
-      await axios.put(`http://localhost:5000/api/incidents/${updatedIncident.id}`, updatedIncident);
+      await axios.put(`https://mern-incident-sable.vercel.app/api/incidents/${updatedIncident.id}`, updatedIncident);
       alert('Incident updated successfully');
       setEditModal({ open: false, incident: null });
       loadIncidents();
