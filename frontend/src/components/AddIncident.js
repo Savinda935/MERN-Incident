@@ -300,7 +300,7 @@ const AddIncident = () => {
                 overflowY: 'auto', 
                 background: '#f8f9fa', 
                 padding: '10px', 
-                borderRadius: '8px',
+                borderRadius: '7px',
                 border: '1px solid #ddd'
               }}>
                 {subValueOptions.map((subValue, index) => (
