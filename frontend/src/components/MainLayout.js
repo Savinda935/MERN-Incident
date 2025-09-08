@@ -1,20 +1,75 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
 import Sidebar from './Sidebar';
 import AddIncident from './AddIncident';
 import ViewIncidents from './ViewIncidents';
 import Dashboard from './Dashboard';
 import AvailabilityReport from './AvailabilityReport';
 import UplinkAvailabilityTable from './UplinkAvailabilityTable';
+import Analytics from './Analytics';
 import '../css/MainLayout.css';
 
 const MainLayout = () => {
   const [activeMenu, setActiveMenu] = useState('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [activeIncidentsCount, setActiveIncidentsCount] = useState(0);
+  const [notificationCount, setNotificationCount] = useState(0);
+  const [newUpdatesCount, setNewUpdatesCount] = useState(0);
+  const [hasNewUpdatesPulse, setHasNewUpdatesPulse] = useState(false);
+  const incidentsSignatureRef = useRef('');
+  const pulseTimeoutRef = useRef(null);
 
   const handleMenuChange = (menuId) => {
     setActiveMenu(menuId);
   };
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadHeaderStats = async () => {
+      try {
+        const res = await axios.get('https://mern-incident-sable.vercel.app/api/incidents');
+        const incidents = res.data || [];
+        const today = new Date().toISOString().slice(0, 10);
+        const active = incidents.filter((incident) => {
+          if (!incident.downTimeDate || incident.downTimeDate === '-') return false;
+          const downDate = incident.downTimeDate.slice(0, 10);
+          return downDate === today && (!incident.upTimeDate || incident.upTimeDate === '-');
+        }).length;
+        // Compute a lightweight signature of current incidents to detect changes
+        const latestTs = incidents.reduce((max, inc) => {
+          const tsDown = inc.downTimeDate && inc.downTimeDate !== '-' ? Date.parse(inc.downTimeDate) : 0;
+          const tsUp = inc.upTimeDate && inc.upTimeDate !== '-' ? Date.parse(inc.upTimeDate) : 0;
+          const ts = Math.max(tsDown || 0, tsUp || 0, inc.id || 0);
+          return ts > max ? ts : max;
+        }, 0);
+        const signature = `${incidents.length}-${latestTs}`;
+
+        if (!mounted) return;
+        setActiveIncidentsCount(active);
+
+        // If signature changed (and not the very first run), count as a new update
+        if (incidentsSignatureRef.current && incidentsSignatureRef.current !== signature) {
+          setNewUpdatesCount(prev => prev + 1);
+          setHasNewUpdatesPulse(true);
+          if (pulseTimeoutRef.current) clearTimeout(pulseTimeoutRef.current);
+          pulseTimeoutRef.current = setTimeout(() => setHasNewUpdatesPulse(false), 8000);
+        }
+        incidentsSignatureRef.current = signature;
+
+        setNotificationCount(active + newUpdatesCount);
+      } catch (e) {
+        if (!mounted) return;
+        setActiveIncidentsCount(0);
+        setNotificationCount(newUpdatesCount);
+      }
+    };
+
+    loadHeaderStats();
+    const interval = setInterval(loadHeaderStats, 15000);
+    return () => { mounted = false; clearInterval(interval); if (pulseTimeoutRef.current) clearTimeout(pulseTimeoutRef.current); };
+  }, [newUpdatesCount]);
 
   const renderContent = () => {
     switch (activeMenu) {
@@ -39,10 +94,7 @@ const MainLayout = () => {
           <p>Monthly summary report will be displayed here.</p>
         </div>;
       case 'analytics':
-        return <div className="content-placeholder">
-          <h2>Analytics</h2>
-          <p>Analytics dashboard will be implemented here.</p>
-        </div>;
+        return <Analytics />;
       case 'settings':
         return <div className="content-placeholder">
           <h2>Settings</h2>
@@ -95,7 +147,7 @@ const MainLayout = () => {
             <div className="header-stats">
               <div className="stat-item">
                 <span className="stat-label">Active Incidents</span>
-                <span className="stat-value">3</span>
+                <span className="stat-value">{activeIncidentsCount}</span>
               </div>
               <div className="stat-item">
                 <span className="stat-label">System Health</span>
@@ -104,9 +156,13 @@ const MainLayout = () => {
             </div>
             
             <div className="header-actions">
-              <button className="notification-btn" title="Notifications">
+              <button 
+                className={`notification-btn${hasNewUpdatesPulse ? ' pulse' : ''}`}
+                title="Notifications"
+                onClick={() => { setNewUpdatesCount(0); setHasNewUpdatesPulse(false); setNotificationCount(activeIncidentsCount); }}
+              >
                 🔔
-                <span className="notification-badge">2</span>
+                <span className="notification-badge">{notificationCount}</span>
               </button>
             </div>
           </div>

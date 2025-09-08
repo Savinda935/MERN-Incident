@@ -6,7 +6,8 @@ import '../css/UplinkTable.css';
 const categories = [
   'Core Switch',
   'WAN Firewall',
-  'Access & Distribution Switches'
+  'Access & Distribution Switches',
+  'Access Points Availability'
 ];
 
 const UplinkAvailabilityTable = () => {
@@ -19,6 +20,8 @@ const UplinkAvailabilityTable = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalUplink, setModalUplink] = useState('');
   const modalTableRef = useRef(null);
+  const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [searchText, setSearchText] = useState('');
 
   useEffect(() => {
     axios.get('https://mern-incident-sable.vercel.app/api/incidents').then(res => {
@@ -28,7 +31,7 @@ const UplinkAvailabilityTable = () => {
   }, []);
 
   useEffect(() => {
-    const downtime = calculateSubValueDowntime(incidents);
+    const downtime = calculateSubValueDowntime(incidents, selectedMonth);
     setSubValueDowntime(downtime);
     // Group by category
     const grouped = {};
@@ -37,18 +40,26 @@ const UplinkAvailabilityTable = () => {
       if (!grouped[cat]) grouped[cat] = [];
       grouped[cat].push({ subValue, ...data });
     });
+    // Apply search filter
+    if (searchText.trim()) {
+      const q = searchText.trim().toLowerCase();
+      Object.keys(grouped).forEach(cat => {
+        grouped[cat] = grouped[cat].filter(row => row.subValue.toLowerCase().includes(q));
+      });
+    }
     setCategoryTables(grouped);
-  }, [incidents]);
+  }, [incidents, selectedMonth, searchText]);
 
   function getCategoryForSubValue(subValue, incidents) {
     const found = incidents.find(i => i.subValue === subValue);
     return found ? found.category : 'Other';
   }
 
-  function calculateSubValueDowntime(incidents) {
-    const now = new Date();
-    const thisMonth = now.toISOString().slice(0, 7);
-    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  function calculateSubValueDowntime(incidents, selectedMonth) {
+    const [yearStr, monthStr] = selectedMonth.split('-');
+    const year = parseInt(yearStr, 10);
+    const monthIndex = parseInt(monthStr, 10) - 1;
+    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
     const totalMinutesInMonth = daysInMonth * 24 * 60;
     const allSubValues = Array.from(new Set(incidents.map(i => i.subValue)));
     const subValueDowntime = {};
@@ -56,7 +67,7 @@ const UplinkAvailabilityTable = () => {
       const subValueIncidents = incidents.filter(inc => 
         inc.subValue === subValue && 
         inc.downTimeDate && 
-        inc.downTimeDate.slice(0, 7) === thisMonth
+        inc.downTimeDate.slice(0, 7) === selectedMonth
       );
       let plannedDowntime = 0;
       let unplannedDowntime = 0;
@@ -432,7 +443,7 @@ const UplinkAvailabilityTable = () => {
   };
 
   const handleViewIncidents = (subValue) => {
-    const filtered = incidents.filter(i => i.subValue === subValue);
+    const filtered = incidents.filter(i => i.subValue === subValue && i.downTimeDate && i.downTimeDate.slice(0, 7) === selectedMonth);
     setModalIncidents(filtered);
     setModalUplink(subValue);
     setShowModal(true);
@@ -442,6 +453,10 @@ const UplinkAvailabilityTable = () => {
     <div className="uplink-container">
       <div className="table-header">
         <h1>Uplink Availability</h1>
+        <div className="header-actions" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} />
+          <input type="text" placeholder="Search uplink..." value={searchText} onChange={(e) => setSearchText(e.target.value)} />
+        </div>
       </div>
       {categories.map(cat => (
         <div key={cat} className="category-section">

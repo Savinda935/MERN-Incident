@@ -117,7 +117,7 @@ const Dashboard = () => {
       setRecentIncidents(recent);
       
       // System health by category
-      const categories = ['Core Switch', 'WAN Firewall', 'Access & Distribution Switches'];
+      const categories = ['Core Switch', 'WAN Firewall', 'Access & Distribution Switches', 'Access Points Availability'];
       const healthData = categories.map(category => {
         const categoryIncidents = incidents.filter(inc => inc.category === category);
         const categoryAvailability = calculateCategoryAvailability(categoryIncidents, thisMonth);

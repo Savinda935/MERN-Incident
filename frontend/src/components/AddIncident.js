@@ -288,6 +288,7 @@ const AddIncident = () => {
             <option value="Core Switch">Core Switch</option>
             <option value="WAN Firewall">WAN Firewall</option>
             <option value="Access & Distribution Switches">Access & Distribution Switches</option>
+            <option value="Access Points Availability">Access Points Availability</option>
           </select>
           
           {category && subValueOptions.length > 0 && (
@@ -350,6 +351,7 @@ const AddIncident = () => {
             <option value="Core Switch">Core Switch</option>
             <option value="WAN Firewall">WAN Firewall</option>
             <option value="Access & Distribution Switches">Access & Distribution Switches</option>
+            <option value="Access Points Availability">Access Points Availability</option>
           </select>
         </div>
         

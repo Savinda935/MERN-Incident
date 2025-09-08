@@ -10,6 +10,7 @@ const ViewIncidents = () => {
   const [subValueFilter, setSubValueFilter] = useState('');
   const [downTypeFilter, setDownTypeFilter] = useState('');
   const [subValueOptions, setSubValueOptions] = useState([]);
+  const [searchText, setSearchText] = useState('');
   const [editModal, setEditModal] = useState({ open: false, incident: null });
   const [availabilityModal, setAvailabilityModal] = useState(false);
   const [dailyDowntime, setDailyDowntime] = useState(0);
@@ -21,7 +22,8 @@ const ViewIncidents = () => {
   const [categorySummaries, setCategorySummaries] = useState({
     'Core Switch': { dailyDowntime: 0, monthlyDowntime: 0, overallAvailability: '100.00', incidentCount: 0 },
     'WAN Firewall': { dailyDowntime: 0, monthlyDowntime: 0, overallAvailability: '100.00', incidentCount: 0 },
-    'Access & Distribution Switches': { dailyDowntime: 0, monthlyDowntime: 0, overallAvailability: '100.00', incidentCount: 0 }
+    'Access & Distribution Switches': { dailyDowntime: 0, monthlyDowntime: 0, overallAvailability: '100.00', incidentCount: 0 },
+    'Access Points Availability': { dailyDowntime: 0, monthlyDowntime: 0, overallAvailability: '100.00', incidentCount: 0 }
   });
 
   useEffect(() => {
@@ -40,7 +42,7 @@ const ViewIncidents = () => {
     console.log('Filters changed, recalculating...', { categoryFilter, subValueFilter, downTypeFilter });
     filterIncidents();
     calculateDowntimeAndAvailability();
-  }, [incidents, categoryFilter, subValueFilter, downTypeFilter]);
+  }, [incidents, categoryFilter, subValueFilter, downTypeFilter, searchText]);
 
   useEffect(() => {
     if (editModal.open && editModal.incident) {
@@ -200,7 +202,7 @@ const ViewIncidents = () => {
   };
 
   const calculateCategorySummaries = () => {
-    const categories = ['Core Switch', 'WAN Firewall', 'Access & Distribution Switches'];
+    const categories = ['Core Switch', 'WAN Firewall', 'Access & Distribution Switches', 'Access Points Availability'];
     const newCategorySummaries = {};
     
     categories.forEach(category => {
@@ -226,12 +228,24 @@ const ViewIncidents = () => {
     console.log('Filtering incidents with:', { categoryFilter, subValueFilter, downTypeFilter });
     console.log('Total incidents before filtering:', incidents.length);
     
-    const filtered = incidents.filter(
-      (incident) =>
-        (!categoryFilter || incident.category === categoryFilter) &&
+    const q = searchText.trim().toLowerCase();
+    const filtered = incidents.filter((incident) => {
+      const matchesFilters = (!categoryFilter || incident.category === categoryFilter) &&
         (!subValueFilter || incident.subValue === subValueFilter) &&
-        (!downTypeFilter || incident.downType === downTypeFilter)
-    );
+        (!downTypeFilter || incident.downType === downTypeFilter);
+      if (!matchesFilters) return false;
+      if (!q) return true;
+      const haystack = [
+        incident.category || '',
+        incident.subValue || '',
+        incident.downType || '',
+        incident.escalatedPerson || '',
+        incident.remarks || '',
+        incident.downTimeDate || '',
+        incident.upTimeDate || ''
+      ].join(' ').toLowerCase();
+      return haystack.includes(q);
+    });
     
     console.log('Filtered incidents count:', filtered.length);
     setFilteredIncidents(filtered);
@@ -531,11 +545,19 @@ const ViewIncidents = () => {
     <div className="container">
       <h1>View NOC Incidents</h1>
       <div className="filter-group">
+        <input 
+          type="text" 
+          placeholder="Search incidents (category, sub-value, remarks, person, dates)" 
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          style={{ minWidth: 280 }}
+        />
         <select onChange={(e) => setCategoryFilter(e.target.value)}>
           <option value="">All Categories</option>
           <option value="Core Switch">Core Switch</option>
           <option value="WAN Firewall">WAN Firewall</option>
           <option value="Access & Distribution Switches">Access & Distribution Switches</option>
+          <option value="Access Points Availability">Access Points Availability</option>
         </select>
         <select onChange={(e) => setSubValueFilter(e.target.value)}>
           <option value="">All Sub-Values</option>
@@ -771,6 +793,7 @@ const ViewIncidents = () => {
                   <option value="Core Switch">Core Switch</option>
                   <option value="WAN Firewall">WAN Firewall</option>
                   <option value="Access & Distribution Switches">Access & Distribution Switches</option>
+                  <option value="Access Points Availability">Access Points Availability</option>
                 </select>
               </div>
               <div className="form-group">

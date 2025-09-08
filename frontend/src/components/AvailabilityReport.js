@@ -2,14 +2,15 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import '../css/AvailabilityReport.css';
 
-function calculateMonthlyAvailability(incidents, category) {
-  const now = new Date();
-  const thisMonth = now.toISOString().slice(0, 7);
+function calculateMonthlyAvailability(incidents, category, selectedMonth) {
+  const [yearStr, monthStr] = selectedMonth.split('-');
+  const year = parseInt(yearStr, 10);
+  const monthIndex = parseInt(monthStr, 10) - 1; // 0-based
   // Get all Core Switch sub-values from all incidents (not just this month)
   const allCoreSwitchSubValues = Array.from(new Set(
     incidents.filter(i => i.category === category).map(i => i.subValue)
   ));
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
   const results = [];
   
   allCoreSwitchSubValues.forEach(subValue => {
@@ -18,7 +19,7 @@ function calculateMonthlyAvailability(incidents, category) {
       inc.category === category &&
       inc.subValue === subValue &&
       inc.downTimeDate &&
-      inc.downTimeDate.slice(0, 7) === thisMonth
+      inc.downTimeDate.slice(0, 7) === selectedMonth
     );
     
     // If there are no incidents for this month, treat as 100% (Not Down)
@@ -249,20 +250,22 @@ const downloadComprehensiveChart = (category, up100, below100, up100Percent, bel
 };
 
 // Function to download availability report as CSV
-const downloadAvailabilityReport = (allIncidents) => {
-  const now = new Date();
-  const monthName = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+const downloadAvailabilityReport = (allIncidents, selectedMonth) => {
+  const [yearStr, monthStr] = selectedMonth.split('-');
+  const monthName = new Date(parseInt(yearStr, 10), parseInt(monthStr, 10) - 1, 1)
+    .toLocaleString('default', { month: 'long', year: 'numeric' });
   const categories = [
     "Core Switch",
     "WAN Firewall",
-    "Access & Distribution Switches"
+    "Access & Distribution Switches",
+    "Access Points Availability"
   ];
 
   // Create CSV content
   let csvContent = `Network Availability Report - ${monthName}\n\n`;
   
   categories.forEach(category => {
-    const availabilitiesForCategory = calculateMonthlyAvailability(allIncidents, category);
+    const availabilitiesForCategory = calculateMonthlyAvailability(allIncidents, category, selectedMonth);
     const up100 = availabilitiesForCategory.filter(a => parseFloat(a.availability) === 100);
     const below100 = availabilitiesForCategory.filter(a => parseFloat(a.availability) < 100);
     const total = availabilitiesForCategory.length;
@@ -316,11 +319,12 @@ const AvailabilityReport = () => {
   const [availabilities, setAvailabilities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [allIncidents, setAllIncidents] = useState([]);
+  const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
 
   useEffect(() => {
     axios.get('https://mern-incident-sable.vercel.app/api/incidents').then(res => {
       setAllIncidents(res.data);
-      const data = calculateMonthlyAvailability(res.data, 'Core Switch');
+      const data = calculateMonthlyAvailability(res.data, 'Core Switch', selectedMonth);
       setAvailabilities(data);
       setLoading(false);
     }).catch(err => {
@@ -333,7 +337,7 @@ const AvailabilityReport = () => {
   useEffect(() => {
     if (allIncidents.length === 0) return;
     categories.forEach(category => {
-      const availabilitiesForCategory = calculateMonthlyAvailability(allIncidents, category);
+      const availabilitiesForCategory = calculateMonthlyAvailability(allIncidents, category, selectedMonth);
       const up100 = availabilitiesForCategory.filter(a => parseFloat(a.availability) === 100);
       const below100 = availabilitiesForCategory.filter(a => parseFloat(a.availability) < 100);
       const canvasId = `availability-chart-${category.replace(/\s/g, '-')}`;
@@ -393,9 +397,10 @@ const AvailabilityReport = () => {
             }
           }
         });
+
       });
     });
-  }, [allIncidents]);
+  }, [allIncidents, selectedMonth]);
 
 
 
@@ -408,14 +413,15 @@ const AvailabilityReport = () => {
     );
   }
 
-  const now = new Date();
-  const thisMonth = now.toISOString().slice(0, 7);
-  const monthName = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+  const [yearStr, monthStr] = selectedMonth.split('-');
+  const monthName = new Date(parseInt(yearStr, 10), parseInt(monthStr, 10) - 1, 1)
+    .toLocaleString('default', { month: 'long', year: 'numeric' });
 
   const categories = [
     "Core Switch",
     "WAN Firewall",
-    "Access & Distribution Switches"
+    "Access & Distribution Switches",
+    "Access Points Availability"
   ];
 
   return (
@@ -424,11 +430,15 @@ const AvailabilityReport = () => {
         <h1>Network Availability Report</h1>
         <div className="header-actions">
           <div className="month-indicator">
-            <span>{monthName}</span>
+            <input
+              type="month"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+            />
           </div>
           <button 
             className="download-btn"
-            onClick={() => downloadAvailabilityReport(allIncidents)}
+            onClick={() => downloadAvailabilityReport(allIncidents, selectedMonth)}
             title="Download Availability Report"
           >
             📥 Download Report
@@ -436,7 +446,7 @@ const AvailabilityReport = () => {
         </div>
       </div>
       {categories.map(category => {
-        const availabilitiesForCategory = calculateMonthlyAvailability(allIncidents, category);
+        const availabilitiesForCategory = calculateMonthlyAvailability(allIncidents, category, selectedMonth);
         const up100 = availabilitiesForCategory.filter(a => parseFloat(a.availability) === 100);
         const below100 = availabilitiesForCategory.filter(a => parseFloat(a.availability) < 100);
         const total = availabilitiesForCategory.length;
@@ -446,6 +456,22 @@ const AvailabilityReport = () => {
           <div key={category} className="category-report-section" style={{marginBottom: 60}}>
             <h2 style={{color:'#ffc107', marginBottom: 20}}>{category} Availability</h2>
             <div className="dashboard-content">
+              <div style={{ marginBottom: 12 }}>
+                <input
+                  type="text"
+                  placeholder={`Search ${category} uplinks...`}
+                  onChange={(e) => {
+                    const q = e.target.value.trim().toLowerCase();
+                    const filtered = calculateMonthlyAvailability(allIncidents, category, selectedMonth).filter(a => a.subValue.toLowerCase().includes(q));
+                    // Override arrays for rendering
+                    const up = filtered.filter(a => parseFloat(a.availability) === 100);
+                    const down = filtered.filter(a => parseFloat(a.availability) < 100);
+                    // Mutate local variables for this render block
+                    up100.splice(0, up100.length, ...up);
+                    below100.splice(0, below100.length, ...down);
+                  }}
+                />
+              </div>
               <div className="stats-section">
                 <div className="stat-cards total-uplinks">
                   <div className="stat-icon">🔗</div>

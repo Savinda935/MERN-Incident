@@ -86,6 +86,11 @@ export const subValues = {
       "HBSI",
       "HO_ROUTER",
       "FL_ROUTER",
+      "DEANS-ROAD-CORE-STACK",
+      "ESD-SWITCH",
+      "NEW-DC-STACK",
+      "NEW-DC-VM-STACK",
+      "SBDU_SW1",
     ],
   };
   
@@ -97,4 +102,65 @@ export const subValues = {
     "Agro-QS_Hokandara *",
     "Agro-Fertilizer *",
     "Agro-Quality Seeds Boralanda 1 *",
+  ];
+
+  // Access Points Availability
+  subValues["Access Points Availability"] = [
+    // GROUP_IT
+    "AP_01-GRIT_01-30",
+    "AP_109-HBSI-162",
+    "AP_03-TREASURY_01-122",
+    "AP 26-TREASURY BR-123",
+    "AP_34-HAY_SEC_02-20",
+    "AP_35-HAY_FIN_01-21",
+    "AP_13-LEGAL_01-72",
+    "AP_40-GFM_01-140",
+    "AP 08-GHR 01-78",
+    "AP_32-CONFERENCE_01-10",
+    "AP_16-ADV_AST_GLOBAL_01-121",
+    // ADVANTIS
+    "AP 07-ADV HO 04-119",
+    "AP 37-ADV HO 02-117",
+    "AP 39-ADV HO 03-118",
+    "AP_28-ADV_CLSH_01-112",
+    "AP 43-ADV CLSH 02-116",
+    "AP 21-ADV CLSH 02-123",
+    "AP_29-ADV_NYK_01-113",
+    "AP_33-ADV_AVTN_01-115",
+    "AP 30-ADV VSTR 01-114",
+    // HAYCARB
+    "AP 88-HAYCARB 05-76",
+    "AP 49-HAYCARB 04-75",
+    "AP_11-HAYCARB_01-70",
+    "AP_108-HAYCARB_06-77",
+    "AP_12-HAYCARB_02-71",
+    "AP 42-HAYCARB 03-74",
+    "AP_18-PURITAS_01-90",
+    // AVENTURA
+    "AP_23-AVENTURA_02-51",
+    "AP_19-AVENTURA_01-50",
+    "AP_20-AVENTURA_03-53",
+    // HPL (Horana Plantation)
+    "AP_123-HPL_01-181",
+    // KVPL (Kelani Valley Plantations)
+    "AP_27-KVPL_01-65",
+    // LEISURE
+    "AP_24-LIFE_SCINCES_01-52",
+    // AGRO
+    "AP_90-AGRO_05-64",
+    "AP_89-AGRO_04-63",
+    "AP_04-AGRO_01-67",
+    // CONSUMER
+    "AP_05-CONSUMER_01-40",
+    // FIBRE
+    "AP_15-FIBRE_01-120",
+    // DPL
+    "AP_25-DPL_01-155",
+    "AP_06-DPL_02-156",
+    // CPMD
+    "AP_38-CPMD_01-55",
+    // TTEL
+    "AP_22-TTEL_01-245",
+    // MARTIN BOURE
+    "AP_31-HGBL_01-26",
   ];
