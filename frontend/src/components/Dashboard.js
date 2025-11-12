@@ -22,7 +22,7 @@ const Dashboard = () => {
 
   const loadDashboardData = async () => {
     try {
-      const response = await axios.get('https://mern-incident-sable.vercel.app/api/incidents');
+      const response = await axios.get('http://localhost:5000/api/incidents');
       const incidents = response.data;
       
       // Calculate statistics

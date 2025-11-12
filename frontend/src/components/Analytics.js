@@ -7,62 +7,83 @@ const categories = ['Core Switch', 'WAN Firewall', 'Access & Distribution Switch
 const Analytics = () => {
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
+
+  // Reporting period - explicit date range
+  const [reportStartDate, setReportStartDate] = useState(() => new Date(new Date().setDate(1)).toISOString().slice(0, 10));
+  const [reportEndDate, setReportEndDate] = useState(() => new Date().toISOString().slice(0, 10));
+
+  const [searchText, setSearchText] = useState('');
 
   useEffect(() => {
-    axios.get('https://mern-incident-sable.vercel.app/api/incidents')
+    axios.get('http://localhost:5000/api/incidents')
       .then(res => setIncidents(res.data))
       .finally(() => setLoading(false));
   }, []);
 
-  const monthName = useMemo(() => {
-    const [y, m] = selectedMonth.split('-').map(n => parseInt(n, 10));
-    return new Date(y, m - 1, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
-  }, [selectedMonth]);
-
-  const [searchText, setSearchText] = useState('');
+  // Validate date range helper
+  const isRangeValid = () => {
+    const start = new Date(reportStartDate);
+    const end = new Date(reportEndDate);
+    return !(isNaN(start) || isNaN(end) || end < start);
+  };
 
   const metrics = useMemo(() => {
-    const monthFilter = (d) => d && d !== '-' && d.slice(0, 7) === selectedMonth;
-    const monthIncidents = incidents.filter(i => monthFilter(i.downTimeDate) || monthFilter(i.upTimeDate));
+    const periodIncidents = incidents.filter(i => {
+      const down = i.downTimeDate ? new Date(i.downTimeDate) : null;
+      const up = i.upTimeDate ? new Date(i.upTimeDate) : null;
 
-    const totalIncidents = monthIncidents.length;
-    const planned = monthIncidents.filter(i => i.downType === 'Planned').length;
-    const unplanned = monthIncidents.filter(i => i.downType === 'Unplanned').length;
+      if (!down || !up) return false;
+
+      const start = new Date(reportStartDate);
+      const end = reportEndDate ? new Date(reportEndDate) : new Date();
+
+      // Only include incidents that intersect with the reporting period
+      return (up >= start && down <= end);
+    });
+
+    const totalIncidents = periodIncidents.length;
+    const planned = periodIncidents.filter(i => i.downType === 'Planned').length;
+    const unplanned = periodIncidents.filter(i => i.downType === 'Unplanned').length;
 
     // Availability per category
-    const [yearStr, monthStr] = selectedMonth.split('-');
-    const year = parseInt(yearStr, 10);
-    const monthIndex = parseInt(monthStr, 10) - 1;
-    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-    const totalMinutes = daysInMonth * 24 * 60;
+    const start = new Date(reportStartDate);
+    const end = reportEndDate ? new Date(reportEndDate) : new Date();
+    const totalMinutes = (end - start) / (1000 * 60); // total minutes in period
 
     const availabilityByCategory = categories.map(cat => {
-      const incs = monthIncidents.filter(i => i.category === cat);
+      const incs = periodIncidents.filter(i => i.category === cat);
       let downtime = 0;
       incs.forEach(i => {
-        if (i.downTimeDate && i.upTimeDate && i.downTimeDate !== '-' && i.upTimeDate !== '-' && i.downType !== 'Not Down') {
+        if (i.downTimeDate && i.upTimeDate && i.downType !== 'Not Down') {
           const down = new Date(i.downTimeDate);
           const up = new Date(i.upTimeDate);
-          if (!isNaN(down) && !isNaN(up) && up > down) downtime += (up - down) / (1000 * 60);
+          if (!isNaN(down) && !isNaN(up) && up > down) {
+            // Clip downtime to reporting period
+            const clippedDown = down < start ? start : down;
+            const clippedUp = up > end ? end : up;
+            downtime += (clippedUp - clippedDown) / (1000 * 60);
+          }
         }
       });
       const avail = totalMinutes > 0 ? ((totalMinutes - downtime) / totalMinutes) * 100 : 100;
       return { category: cat, availability: avail.toFixed(2) };
     });
 
-    // Top N uplinks with downtime
+    // Top N uplinks by downtime
     const downtimeBySub = {};
-    monthIncidents.forEach(i => {
-      if (i.downTimeDate && i.upTimeDate && i.downTimeDate !== '-' && i.upTimeDate !== '-' && i.downType !== 'Not Down') {
+    periodIncidents.forEach(i => {
+      if (i.downTimeDate && i.upTimeDate && i.downType !== 'Not Down') {
         const down = new Date(i.downTimeDate);
         const up = new Date(i.upTimeDate);
         if (!isNaN(down) && !isNaN(up) && up > down) {
-          const minutes = (up - down) / (1000 * 60);
+          const clippedDown = down < start ? start : down;
+          const clippedUp = up > end ? end : up;
+          const minutes = (clippedUp - clippedDown) / (1000 * 60);
           downtimeBySub[i.subValue] = (downtimeBySub[i.subValue] || 0) + minutes;
         }
       }
     });
+
     let topDowntime = Object.entries(downtimeBySub)
       .map(([subValue, minutes]) => ({ subValue, minutes: Math.round(minutes) }))
       .sort((a, b) => b.minutes - a.minutes)
@@ -74,7 +95,7 @@ const Analytics = () => {
     }
 
     return { totalIncidents, planned, unplanned, availabilityByCategory, topDowntime };
-  }, [incidents, selectedMonth, searchText]);
+  }, [incidents, reportStartDate, reportEndDate, searchText]);
 
   if (loading) {
     return (
@@ -87,18 +108,64 @@ const Analytics = () => {
     );
   }
 
-  const [y, m] = selectedMonth.split('-').map(n => parseInt(n, 10));
-
   return (
     <div className="dashboard">
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-icon">📅</div>
           <div className="stat-content">
-            <h3>Selected Month</h3>
-            <span className="stat-number">{monthName}</span>
-            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} />
+            <h3>Date Range</h3>
+            <span className="stat-number">{reportStartDate} → {reportEndDate}</span>
+            <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <input 
+                type="date" 
+                value={reportStartDate} 
+                onChange={(e) => setReportStartDate(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  border: '2px solid #3498db',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#2c3e50',
+                  backgroundColor: '#ffffff',
+                  cursor: 'pointer',
+                  minWidth: '150px'
+                }}
+              />
+              <span style={{ color: '#7f8c8d', fontWeight: '600' }}>to</span>
+              <input 
+                type="date" 
+                value={reportEndDate} 
+                onChange={(e) => setReportEndDate(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  border: '2px solid #3498db',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#2c3e50',
+                  backgroundColor: '#ffffff',
+                  cursor: 'pointer',
+                  minWidth: '150px'
+                }}
+              />
+              <button 
+                disabled={!isRangeValid()}
+                style={{
+                  padding: '8px 16px',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  backgroundColor: isRangeValid() ? '#3498db' : '#bdc3c7',
+                  color: '#ffffff',
+                  cursor: isRangeValid() ? 'pointer' : 'not-allowed',
+                  transition: 'background-color 0.3s ease'
+                }}
+              >
+                Apply
+              </button>
             </div>
           </div>
         </div>
@@ -118,7 +185,7 @@ const Analytics = () => {
             <div className="stat-content">
               <h3>{item.category} Uptime</h3>
               <span className="stat-number success">{item.availability}%</span>
-              <span className="stat-change positive">This month</span>
+              <span className="stat-change positive">This period</span>
             </div>
           </div>
         ))}
@@ -134,7 +201,7 @@ const Analytics = () => {
               <input type="text" placeholder="Search uplinks..." value={searchText} onChange={(e) => setSearchText(e.target.value)} />
             </div>
             {metrics.topDowntime.length === 0 ? (
-              <div className="empty-state">No downtime recorded this month</div>
+              <div className="empty-state">No downtime recorded this period</div>
             ) : (
               <table className="availability-table">
                 <thead>
@@ -187,4 +254,3 @@ const Analytics = () => {
 };
 
 export default Analytics;
-

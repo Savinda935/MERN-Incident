@@ -54,7 +54,7 @@ const ViewIncidents = () => {
 
   const loadIncidents = async () => {
     try { 
-      const response = await axios.get('https://mern-incident-sable.vercel.app/api/incidents');
+      const response = await axios.get('http://localhost:5000/api/incidents');
       setIncidents(response.data);
       setFilteredIncidents(response.data);
     } catch (error) {
@@ -114,17 +114,18 @@ const ViewIncidents = () => {
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth();
+    const monthStart = new Date(year, month, 1, 0, 0, 0);
+    const monthEnd = new Date(year, month + 1, 0, 23, 59, 59);
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const thisMonth = now.toISOString().slice(0, 7);
 
-    // Get unique sub-values for this month
+    // Get unique sub-values that have any overlap with this month
     const uniqueSubValues = new Set();
     incidents.forEach(incident => {
-      if (incident.downTimeDate) {
-        const incidentMonth = incident.downTimeDate.slice(0, 7);
-        if (incidentMonth === thisMonth) {
-          uniqueSubValues.add(incident.subValue);
-        }
+      const down = incident.downTimeDate ? new Date(incident.downTimeDate) : null;
+      const up = incident.upTimeDate ? new Date(incident.upTimeDate) : null;
+      if (!down || !up) return;
+      if (up >= monthStart && down <= monthEnd) {
+        uniqueSubValues.add(incident.subValue);
       }
     });
 
@@ -135,45 +136,35 @@ const ViewIncidents = () => {
       let totalDowntime = 0;
 
       incidents.forEach((incident) => {
-        if (!incident.downTimeDate || incident.subValue !== sv) return;
-        
-        const incidentMonth = incident.downTimeDate.slice(0, 7);
-        if (incidentMonth !== thisMonth) return;
-
-        const downTime = new Date(incident.downTimeDate);
-        const upTime = incident.upTimeDate ? new Date(incident.upTimeDate) : now;
-        
-        if (isNaN(downTime.getTime())) return;
-
-        // Calculate downtime for this incident
-        const downtimeMinutes = (upTime - downTime) / (1000 * 60);
-        if (downtimeMinutes > 0) {
-          totalDowntime += downtimeMinutes;
+        if (!incident.downTimeDate || !incident.upTimeDate || incident.subValue !== sv) return;
+        const down = new Date(incident.downTimeDate);
+        const up = new Date(incident.upTimeDate);
+        if (isNaN(down) || isNaN(up)) return;
+        // Only consider overlap with current month; clip to boundaries
+        if (up >= monthStart && down <= monthEnd) {
+          const clippedDown = down < monthStart ? monthStart : down;
+          const clippedUp = up > monthEnd ? monthEnd : up;
+          const minutes = (clippedUp - clippedDown) / (1000 * 60);
+          if (minutes > 0) totalDowntime += minutes;
         }
       });
 
       subValueAvailabilities[sv] = totalMinutes === 0 ? 100 : ((totalMinutes - totalDowntime) / totalMinutes * 100).toFixed(2);
     });
 
-    // Calculate overall availability for the month
-    const totalMinutes = daysInMonth * 24 * 60; // Total minutes in the month
+    // Calculate overall availability for the month (clip to boundaries)
+    const totalMinutes = daysInMonth * 24 * 60;
     let totalDowntime = 0;
-
     incidents.forEach((incident) => {
-      if (!incident.downTimeDate) return;
-      
-      const incidentMonth = incident.downTimeDate.slice(0, 7);
-      if (incidentMonth !== thisMonth) return;
-
-      const downTime = new Date(incident.downTimeDate);
-      const upTime = incident.upTimeDate ? new Date(incident.upTimeDate) : now;
-      
-      if (isNaN(downTime.getTime())) return;
-
-      // Calculate downtime for this incident
-      const downtimeMinutes = (upTime - downTime) / (1000 * 60);
-      if (downtimeMinutes > 0) {
-        totalDowntime += downtimeMinutes;
+      if (!incident.downTimeDate || !incident.upTimeDate) return;
+      const down = new Date(incident.downTimeDate);
+      const up = new Date(incident.upTimeDate);
+      if (isNaN(down) || isNaN(up)) return;
+      if (up >= monthStart && down <= monthEnd) {
+        const clippedDown = down < monthStart ? monthStart : down;
+        const clippedUp = up > monthEnd ? monthEnd : up;
+        const minutes = (clippedUp - clippedDown) / (1000 * 60);
+        if (minutes > 0) totalDowntime += minutes;
       }
     });
 
@@ -273,7 +264,7 @@ const ViewIncidents = () => {
     }
 
     try {
-      await axios.delete(`https://mern-incident-sable.vercel.app/api/incidents/${id}`);
+      await axios.delete(`http://localhost:5000/api/incidents/${id}`);
       alert('✅ Incident deleted successfully!');
       loadIncidents();
     } catch (error) {
@@ -300,7 +291,7 @@ const ViewIncidents = () => {
 
     try {
       const deletePromises = filteredIncidents.map(incident => 
-        axios.delete(`https://mern-incident-sable.vercel.app/api/incidents/${incident.id}`)
+        axios.delete(`http://localhost:5000/api/incidents/${incident.id}`)
       );
       
       await Promise.all(deletePromises);
@@ -326,7 +317,7 @@ const ViewIncidents = () => {
     };
 
     try {
-      await axios.put(`https://mern-incident-sable.vercel.app/api/incidents/${updatedIncident.id}`, updatedIncident);
+      await axios.put(`http://localhost:5000/api/incidents/${updatedIncident.id}`, updatedIncident);
       alert('Incident updated successfully');
       setEditModal({ open: false, incident: null });
       loadIncidents();
@@ -444,53 +435,49 @@ const ViewIncidents = () => {
     return 'down-type planned'; // default to planned for unknown types
   }
 
-  // Function to calculate planned and unplanned downtime for each sub-value
+  // Function to calculate planned and unplanned downtime for each sub-value (clip to current month)
   const calculateSubValueDowntime = () => {
     const now = new Date();
-    const thisMonth = now.toISOString().slice(0, 7);
-    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    const totalMinutesInMonth = daysInMonth * 24 * 60; // 720 hours = 43200 minutes
-    
-    // Get all unique sub-values
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const monthStart = new Date(year, month, 1, 0, 0, 0);
+    const monthEnd = new Date(year, month + 1, 0, 23, 59, 59);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const totalMinutesInMonth = daysInMonth * 24 * 60;
+
     const allSubValues = Array.from(new Set(incidents.map(i => i.subValue)));
-    
     const subValueDowntime = {};
-    
+
     allSubValues.forEach(subValue => {
       const subValueIncidents = incidents.filter(inc => 
-        inc.subValue === subValue && 
-        inc.downTimeDate && 
-        inc.downTimeDate.slice(0, 7) === thisMonth
+        inc.subValue === subValue && inc.downTimeDate && inc.upTimeDate
       );
-      
+
       let plannedDowntime = 0;
       let unplannedDowntime = 0;
-      
+
       subValueIncidents.forEach(incident => {
-        if (incident.downTimeDate && incident.upTimeDate && 
-            incident.downTimeDate !== '-' && incident.upTimeDate !== '-') {
-          
-          const downTime = new Date(incident.downTimeDate);
-          const upTime = new Date(incident.upTimeDate);
-          
-          if (!isNaN(downTime) && !isNaN(upTime) && upTime > downTime) {
-            const downtimeMinutes = (upTime - downTime) / (1000 * 60);
-            
-            if (incident.downType === 'Planned') {
-              plannedDowntime += downtimeMinutes;
-            } else if (incident.downType === 'Unplanned') {
-              unplannedDowntime += downtimeMinutes;
-            }
+        const down = new Date(incident.downTimeDate);
+        const up = new Date(incident.upTimeDate);
+        if (isNaN(down) || isNaN(up) || up <= down) return;
+        // Only count overlap with current month
+        if (up >= monthStart && down <= monthEnd) {
+          const clippedDown = down < monthStart ? monthStart : down;
+          const clippedUp = up > monthEnd ? monthEnd : up;
+          const minutes = (clippedUp - clippedDown) / (1000 * 60);
+          if (minutes > 0) {
+            if (incident.downType === 'Planned') plannedDowntime += minutes;
+            else if (incident.downType === 'Unplanned') unplannedDowntime += minutes;
           }
         }
       });
-      
+
       const totalDowntime = plannedDowntime + unplannedDowntime;
       const uptime = totalMinutesInMonth - totalDowntime;
       const uptimePercentage = ((uptime / totalMinutesInMonth) * 100).toFixed(2);
       const plannedPercentage = ((plannedDowntime / totalMinutesInMonth) * 100).toFixed(2);
       const unplannedPercentage = ((unplannedDowntime / totalMinutesInMonth) * 100).toFixed(2);
-      
+
       subValueDowntime[subValue] = {
         uptime: uptimePercentage,
         plannedDowntime: Math.round(plannedDowntime),
@@ -501,7 +488,7 @@ const ViewIncidents = () => {
         totalMinutesInMonth: totalMinutesInMonth
       };
     });
-    
+
     return subValueDowntime;
   };
 

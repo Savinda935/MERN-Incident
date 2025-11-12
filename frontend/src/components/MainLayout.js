@@ -29,7 +29,7 @@ const MainLayout = () => {
 
     const loadHeaderStats = async () => {
       try {
-        const res = await axios.get('https://mern-incident-sable.vercel.app/api/incidents');
+        const res = await axios.get('http://localhost:5000/api/incidents');
         const incidents = res.data || [];
         const today = new Date().toISOString().slice(0, 10);
         const active = incidents.filter((incident) => {

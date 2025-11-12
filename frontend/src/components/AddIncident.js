@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { subValues } from '../utils/subValues';
 import '../css/AddIncident.css';
+import Swal from 'sweetalert2';
 
 const AddIncident = () => {
   const [category, setCategory] = useState('');
@@ -38,8 +39,16 @@ const AddIncident = () => {
     };
 
     try {
-      const response = await axios.post('https://mern-incident-sable.vercel.app/api/incidents', incident);
-      setMessage(response.data.message || 'Incident added successfully!');
+      const response = await axios.post('http://localhost:5000/api/incidents', incident);
+      
+      // Show success with SweetAlert
+      Swal.fire({
+        icon: 'success',
+        title: 'Incident Added',
+        text: response.data.message || 'Incident added successfully!',
+        confirmButtonColor: '#28a745'
+      });
+      setMessage('');
       
       // Reset form completely
       setFormKey(Date.now());
@@ -49,9 +58,15 @@ const AddIncident = () => {
       
       // Optionally, refresh incidents in parent if callback provided
       if (typeof window.refreshIncidents === 'function') window.refreshIncidents();
-      setTimeout(() => setMessage(''), 2500);
     } catch (error) {
-      setMessage('Error: ' + error.message);
+      // Show error with SweetAlert
+      Swal.fire({
+        icon: 'error',
+        title: 'Error Adding Incident',
+        text: 'Error: ' + error.message,
+        confirmButtonColor: '#d33'
+      });
+      setMessage('');
     }
   };
 
@@ -93,11 +108,19 @@ const AddIncident = () => {
           escalatedPerson: "-",
           remarks: "-",
         };
-        return axios.post('https://mern-incident-sable.vercel.app/api/incidents', incident);
+        return axios.post('http://localhost:5000/api/incidents', incident);
       });
 
       await Promise.all(promises);
-      setMessage(`Successfully added all ${subValueOptions.length} sub-values for ${category}!`);
+      
+      // Show success as SweetAlert
+      Swal.fire({
+        icon: 'success',
+        title: 'Bulk Add Complete',
+        text: `Successfully added all ${subValueOptions.length} sub-values for ${category}!`,
+        confirmButtonColor: '#28a745'
+      });
+      setMessage('');
       
       // Reset form
       setCategory('');
@@ -107,9 +130,15 @@ const AddIncident = () => {
       
       // Optionally, refresh incidents in parent if callback provided
       if (typeof window.refreshIncidents === 'function') window.refreshIncidents();
-      setTimeout(() => setMessage(''), 3000);
     } catch (error) {
-      setMessage('Error bulk adding: ' + error.message);
+      // Show error with SweetAlert
+      Swal.fire({
+        icon: 'error',
+        title: 'Bulk Add Failed',
+        text: 'Error bulk adding: ' + error.message,
+        confirmButtonColor: '#d33'
+      });
+      setMessage('');
     } finally {
       setIsBulkAdding(false);
     }
@@ -117,7 +146,7 @@ const AddIncident = () => {
 
   const loadPreviousMonthData = async () => {
     try {
-      const response = await axios.get('https://mern-incident-sable.vercel.app/api/incidents');
+      const response = await axios.get('http://localhost:5000/api/incidents');
       const allIncidents = response.data;
       
       // Get previous month
@@ -161,7 +190,7 @@ const AddIncident = () => {
           escalatedPerson: incident.escalatedPerson,
           remarks: incident.remarks,
         };
-        return axios.post('https://mern-incident-sable.vercel.app/api/incidents', newIncident);
+        return axios.post('http://localhost:5000/api/incidents', newIncident);
       });
 
       await Promise.all(promises);

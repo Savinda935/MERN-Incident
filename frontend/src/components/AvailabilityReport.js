@@ -2,24 +2,36 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import '../css/AvailabilityReport.css';
 
-function calculateMonthlyAvailability(incidents, category, selectedMonth) {
-  const [yearStr, monthStr] = selectedMonth.split('-');
-  const year = parseInt(yearStr, 10);
-  const monthIndex = parseInt(monthStr, 10) - 1; // 0-based
-  // Get all Core Switch sub-values from all incidents (not just this month)
+function incidentIntersectsPeriod(inc, start, end) {
+  const down = inc.downTimeDate ? new Date(inc.downTimeDate) : null;
+  const up = inc.upTimeDate ? new Date(inc.upTimeDate) : null;
+  if (!down || !up) return false;
+  return up >= start && down <= end;
+}
+
+function clipDowntimeMinutes(down, up, start, end) {
+  const clippedDown = down < start ? start : down;
+  const clippedUp = up > end ? end : up;
+  return Math.max(0, (clippedUp - clippedDown) / (1000 * 60));
+}
+
+function calculateRangeAvailability(incidents, category, startDateStr, endDateStr) {
+  // Get all sub-values for the category from all incidents
   const allCoreSwitchSubValues = Array.from(new Set(
     incidents.filter(i => i.category === category).map(i => i.subValue)
   ));
-  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
   const results = [];
+
+  const periodStart = new Date(`${startDateStr}T00:00:00`);
+  const periodEnd = new Date(`${endDateStr}T23:59:59`);
+  const totalMinutes = Math.max(0, (periodEnd - periodStart) / (1000 * 60));
   
   allCoreSwitchSubValues.forEach(subValue => {
-    const totalMinutes = daysInMonth * 24 * 60;
     const subValueIncidents = incidents.filter(inc =>
       inc.category === category &&
       inc.subValue === subValue &&
-      inc.downTimeDate &&
-      inc.downTimeDate.slice(0, 7) === selectedMonth
+      inc.downTimeDate && inc.upTimeDate &&
+      incidentIntersectsPeriod(inc, periodStart, periodEnd)
     );
     
     // If there are no incidents for this month, treat as 100% (Not Down)
@@ -51,8 +63,8 @@ function calculateMonthlyAvailability(incidents, category, selectedMonth) {
         const down = new Date(inc.downTimeDate);
         const up = new Date(inc.upTimeDate);
         if (!isNaN(down) && !isNaN(up)) {
-          const diff = (up - down) / (1000 * 60);
-          if (diff > 0) totalDowntime += diff;
+          const minutes = clipDowntimeMinutes(down, up, periodStart, periodEnd);
+          if (minutes > 0) totalDowntime += minutes;
         }
       }
     });
@@ -250,10 +262,7 @@ const downloadComprehensiveChart = (category, up100, below100, up100Percent, bel
 };
 
 // Function to download availability report as CSV
-const downloadAvailabilityReport = (allIncidents, selectedMonth) => {
-  const [yearStr, monthStr] = selectedMonth.split('-');
-  const monthName = new Date(parseInt(yearStr, 10), parseInt(monthStr, 10) - 1, 1)
-    .toLocaleString('default', { month: 'long', year: 'numeric' });
+const downloadAvailabilityReport = (allIncidents, startDateStr, endDateStr) => {
   const categories = [
     "Core Switch",
     "WAN Firewall",
@@ -262,10 +271,10 @@ const downloadAvailabilityReport = (allIncidents, selectedMonth) => {
   ];
 
   // Create CSV content
-  let csvContent = `Network Availability Report - ${monthName}\n\n`;
+  let csvContent = `Network Availability Report - ${startDateStr} to ${endDateStr}\n\n`;
   
   categories.forEach(category => {
-    const availabilitiesForCategory = calculateMonthlyAvailability(allIncidents, category, selectedMonth);
+    const availabilitiesForCategory = calculateRangeAvailability(allIncidents, category, startDateStr, endDateStr);
     const up100 = availabilitiesForCategory.filter(a => parseFloat(a.availability) === 100);
     const below100 = availabilitiesForCategory.filter(a => parseFloat(a.availability) < 100);
     const total = availabilitiesForCategory.length;
@@ -297,7 +306,7 @@ const downloadAvailabilityReport = (allIncidents, selectedMonth) => {
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
   link.setAttribute('href', url);
-  link.setAttribute('download', `availability-report-${monthName.replace(' ', '-')}.csv`);
+  link.setAttribute('download', `availability-report-${startDateStr}-to-${endDateStr}.csv`);
   link.style.visibility = 'hidden';
   document.body.appendChild(link);
   link.click();
@@ -319,12 +328,13 @@ const AvailabilityReport = () => {
   const [availabilities, setAvailabilities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [allIncidents, setAllIncidents] = useState([]);
-  const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [startDate, setStartDate] = useState(() => new Date(new Date().setDate(1)).toISOString().slice(0, 10));
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   useEffect(() => {
-    axios.get('https://mern-incident-sable.vercel.app/api/incidents').then(res => {
+    axios.get('http://localhost:5000/api/incidents').then(res => {
       setAllIncidents(res.data);
-      const data = calculateMonthlyAvailability(res.data, 'Core Switch', selectedMonth);
+      const data = calculateRangeAvailability(res.data, 'Core Switch', startDate, endDate);
       setAvailabilities(data);
       setLoading(false);
     }).catch(err => {
@@ -337,7 +347,7 @@ const AvailabilityReport = () => {
   useEffect(() => {
     if (allIncidents.length === 0) return;
     categories.forEach(category => {
-      const availabilitiesForCategory = calculateMonthlyAvailability(allIncidents, category, selectedMonth);
+      const availabilitiesForCategory = calculateRangeAvailability(allIncidents, category, startDate, endDate);
       const up100 = availabilitiesForCategory.filter(a => parseFloat(a.availability) === 100);
       const below100 = availabilitiesForCategory.filter(a => parseFloat(a.availability) < 100);
       const canvasId = `availability-chart-${category.replace(/\s/g, '-')}`;
@@ -400,7 +410,7 @@ const AvailabilityReport = () => {
 
       });
     });
-  }, [allIncidents, selectedMonth]);
+  }, [allIncidents, startDate, endDate]);
 
 
 
@@ -413,9 +423,7 @@ const AvailabilityReport = () => {
     );
   }
 
-  const [yearStr, monthStr] = selectedMonth.split('-');
-  const monthName = new Date(parseInt(yearStr, 10), parseInt(monthStr, 10) - 1, 1)
-    .toLocaleString('default', { month: 'long', year: 'numeric' });
+  const periodLabel = `${startDate} → ${endDate}`;
 
   const categories = [
     "Core Switch",
@@ -429,16 +437,15 @@ const AvailabilityReport = () => {
       <div className="dashboard-header">
         <h1>Network Availability Report</h1>
         <div className="header-actions">
-          <div className="month-indicator">
-            <input
-              type="month"
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-            />
+          <div className="month-indicator" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            <span style={{ color: '#ffc107' }}>to</span>
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            <span style={{ color: '#aaa', marginLeft: 8 }}>{periodLabel}</span>
           </div>
           <button 
             className="download-btn"
-            onClick={() => downloadAvailabilityReport(allIncidents, selectedMonth)}
+            onClick={() => downloadAvailabilityReport(allIncidents, startDate, endDate)}
             title="Download Availability Report"
           >
             📥 Download Report
@@ -446,7 +453,7 @@ const AvailabilityReport = () => {
         </div>
       </div>
       {categories.map(category => {
-        const availabilitiesForCategory = calculateMonthlyAvailability(allIncidents, category, selectedMonth);
+        const availabilitiesForCategory = calculateRangeAvailability(allIncidents, category, startDate, endDate);
         const up100 = availabilitiesForCategory.filter(a => parseFloat(a.availability) === 100);
         const below100 = availabilitiesForCategory.filter(a => parseFloat(a.availability) < 100);
         const total = availabilitiesForCategory.length;
@@ -462,10 +469,11 @@ const AvailabilityReport = () => {
                   placeholder={`Search ${category} uplinks...`}
                   onChange={(e) => {
                     const q = e.target.value.trim().toLowerCase();
-                    const filtered = calculateMonthlyAvailability(allIncidents, category, selectedMonth).filter(a => a.subValue.toLowerCase().includes(q));
+                    // Recompute with current range
+                    const filteredRange = calculateRangeAvailability(allIncidents, category, startDate, endDate).filter(a => a.subValue.toLowerCase().includes(q));
                     // Override arrays for rendering
-                    const up = filtered.filter(a => parseFloat(a.availability) === 100);
-                    const down = filtered.filter(a => parseFloat(a.availability) < 100);
+                    const up = filteredRange.filter(a => parseFloat(a.availability) === 100);
+                    const down = filteredRange.filter(a => parseFloat(a.availability) < 100);
                     // Mutate local variables for this render block
                     up100.splice(0, up100.length, ...up);
                     below100.splice(0, below100.length, ...down);
