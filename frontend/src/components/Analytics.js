@@ -2,13 +2,33 @@ import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import '../css/Dashboard.css';
 
+const getStoredDate = (key, fallback) => {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const stored = localStorage.getItem(key);
+    return stored || fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const storeDate = (key, value) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // Ignore storage issues (e.g. private mode)
+  }
+};
+
 const categories = [
   'Core Switch (Up Links)',
   'WAN Firewall',
   'Access & Distribution Switches',
   'Advantis Sector Switches',
   'Fabric Sector Switches',
-  'Access Points Availability'
+  'Access Points Availability',
+  'SAT Sector Switches'
 ];
 
 const Analytics = () => {
@@ -16,8 +36,14 @@ const Analytics = () => {
   const [loading, setLoading] = useState(true);
 
   // Reporting period - explicit date range
-  const [reportStartDate, setReportStartDate] = useState(() => new Date(new Date().setDate(1)).toISOString().slice(0, 10));
-  const [reportEndDate, setReportEndDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [reportStartDate, setReportStartDate] = useState(() => {
+    const firstOfMonth = new Date(new Date().setDate(1)).toISOString().slice(0, 10);
+    return getStoredDate('analyticsStartDate', firstOfMonth);
+  });
+  const [reportEndDate, setReportEndDate] = useState(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return getStoredDate('analyticsEndDate', today);
+  });
 
   const [searchText, setSearchText] = useState('');
 
@@ -26,6 +52,14 @@ const Analytics = () => {
       .then(res => setIncidents(res.data))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    storeDate('analyticsStartDate', reportStartDate);
+  }, [reportStartDate]);
+
+  useEffect(() => {
+    storeDate('analyticsEndDate', reportEndDate);
+  }, [reportEndDate]);
 
   // Validate date range helper
   const isRangeValid = () => {

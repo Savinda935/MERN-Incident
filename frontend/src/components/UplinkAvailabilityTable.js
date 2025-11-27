@@ -3,6 +3,25 @@ import axios from 'axios';
 import html2canvas from 'html2canvas';
 import '../css/UplinkTable.css';
 
+const getStoredDate = (key, fallback) => {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const stored = localStorage.getItem(key);
+    return stored || fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const storeDate = (key, value) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // Ignore storage failures
+  }
+};
+
 const categories = [
   'Core Switch (Up Links)',
   'WAN Firewall',
@@ -23,8 +42,14 @@ const UplinkAvailabilityTable = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalUplink, setModalUplink] = useState('');
   const modalTableRef = useRef(null);
-  const [startDate, setStartDate] = useState(() => new Date(new Date().setDate(1)).toISOString().slice(0, 10));
-  const [endDate, setEndDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [startDate, setStartDate] = useState(() => {
+    const firstOfMonth = new Date(new Date().setDate(1)).toISOString().slice(0, 10);
+    return getStoredDate('uplinkTableStartDate', firstOfMonth);
+  });
+  const [endDate, setEndDate] = useState(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return getStoredDate('uplinkTableEndDate', today);
+  });
   const [searchText, setSearchText] = useState('');
 
   useEffect(() => {
@@ -53,6 +78,14 @@ const UplinkAvailabilityTable = () => {
     }
     setCategoryTables(grouped);
   }, [incidents, startDate, endDate, searchText]);
+
+  useEffect(() => {
+    storeDate('uplinkTableStartDate', startDate);
+  }, [startDate]);
+
+  useEffect(() => {
+    storeDate('uplinkTableEndDate', endDate);
+  }, [endDate]);
 
   function getCategoryForSubValue(subValue, incidents) {
     const found = incidents.find(i => i.subValue === subValue);

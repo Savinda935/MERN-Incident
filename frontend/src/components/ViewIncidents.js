@@ -3,6 +3,25 @@ import axios from 'axios';
 import { subValues, non24x7SubValues } from '../utils/subValues';
 import '../css/ViewIncidents.css'; // Assuming you have a CSS file for styling
 
+const getStoredDate = (key, fallback) => {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const stored = localStorage.getItem(key);
+    return stored || fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const storeDate = (key, value) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // Ignore storage errors (Safari private mode etc.)
+  }
+};
+
 const ViewIncidents = () => {
   const [incidents, setIncidents] = useState([]);
   const [filteredIncidents, setFilteredIncidents] = useState([]);
@@ -17,9 +36,23 @@ const ViewIncidents = () => {
   const [monthlyDowntime, setMonthlyDowntime] = useState(0);
   const [overallAvailability, setOverallAvailability] = useState('100.00');
   const [subValueAvailabilities, setSubValueAvailabilities] = useState({});
-  // Date range for availability calculations
-  const [startDate, setStartDate] = useState(() => new Date(new Date().setDate(1)).toISOString().slice(0, 10));
-  const [endDate, setEndDate] = useState(() => new Date().toISOString().slice(0, 10));
+  // Date range for availability calculations (persist per user)
+  const [startDate, setStartDate] = useState(() => {
+    const firstOfMonth = new Date(new Date().setDate(1)).toISOString().slice(0, 10);
+    return getStoredDate('viewIncidentsStartDate', firstOfMonth);
+  });
+  const [endDate, setEndDate] = useState(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return getStoredDate('viewIncidentsEndDate', today);
+  });
+  useEffect(() => {
+    storeDate('viewIncidentsStartDate', startDate);
+  }, [startDate]);
+
+  useEffect(() => {
+    storeDate('viewIncidentsEndDate', endDate);
+  }, [endDate]);
+
   
   // Separate summary data for each category
   const [categorySummaries, setCategorySummaries] = useState({

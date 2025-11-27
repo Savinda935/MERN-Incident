@@ -2,6 +2,25 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import '../css/AvailabilityReport.css';
 
+const getStoredDate = (key, fallback) => {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const stored = localStorage.getItem(key);
+    return stored || fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const storeDate = (key, value) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // Ignore storage errors silently
+  }
+};
+
 function incidentIntersectsPeriod(inc, start, end) {
   const down = inc.downTimeDate ? new Date(inc.downTimeDate) : null;
   const up = inc.upTimeDate ? new Date(inc.upTimeDate) : null;
@@ -330,8 +349,14 @@ const AvailabilityReport = () => {
   const [availabilities, setAvailabilities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [allIncidents, setAllIncidents] = useState([]);
-  const [startDate, setStartDate] = useState(() => new Date(new Date().setDate(1)).toISOString().slice(0, 10));
-  const [endDate, setEndDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [startDate, setStartDate] = useState(() => {
+    const firstOfMonth = new Date(new Date().setDate(1)).toISOString().slice(0, 10);
+    return getStoredDate('availabilityReportStartDate', firstOfMonth);
+  });
+  const [endDate, setEndDate] = useState(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return getStoredDate('availabilityReportEndDate', today);
+  });
 
   useEffect(() => {
     axios.get('http://localhost:5000/api/incidents').then(res => {
@@ -413,6 +438,14 @@ const AvailabilityReport = () => {
       });
     });
   }, [allIncidents, startDate, endDate]);
+
+  useEffect(() => {
+    storeDate('availabilityReportStartDate', startDate);
+  }, [startDate]);
+
+  useEffect(() => {
+    storeDate('availabilityReportEndDate', endDate);
+  }, [endDate]);
 
 
 
