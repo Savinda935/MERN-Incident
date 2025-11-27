@@ -17,13 +17,18 @@ const ViewIncidents = () => {
   const [monthlyDowntime, setMonthlyDowntime] = useState(0);
   const [overallAvailability, setOverallAvailability] = useState('100.00');
   const [subValueAvailabilities, setSubValueAvailabilities] = useState({});
+  // Date range for availability calculations
+  const [startDate, setStartDate] = useState(() => new Date(new Date().setDate(1)).toISOString().slice(0, 10));
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().slice(0, 10));
   
   // Separate summary data for each category
   const [categorySummaries, setCategorySummaries] = useState({
-    'Core Switch': { dailyDowntime: 0, monthlyDowntime: 0, overallAvailability: '100.00', incidentCount: 0 },
+    'Core Switch (Up Links)': { dailyDowntime: 0, monthlyDowntime: 0, overallAvailability: '100.00', incidentCount: 0 },
     'WAN Firewall': { dailyDowntime: 0, monthlyDowntime: 0, overallAvailability: '100.00', incidentCount: 0 },
     'Access & Distribution Switches': { dailyDowntime: 0, monthlyDowntime: 0, overallAvailability: '100.00', incidentCount: 0 },
-    'Access Points Availability': { dailyDowntime: 0, monthlyDowntime: 0, overallAvailability: '100.00', incidentCount: 0 }
+    'Access Points Availability': { dailyDowntime: 0, monthlyDowntime: 0, overallAvailability: '100.00', incidentCount: 0 },
+    'Advantis Sector Switches': { dailyDowntime: 0, monthlyDowntime: 0, overallAvailability: '100.00', incidentCount: 0 },
+    'Fabric Sector Switches': { dailyDowntime: 0, monthlyDowntime: 0, overallAvailability: '100.00', incidentCount: 0 },
   });
 
   useEffect(() => {
@@ -42,7 +47,7 @@ const ViewIncidents = () => {
     console.log('Filters changed, recalculating...', { categoryFilter, subValueFilter, downTypeFilter });
     filterIncidents();
     calculateDowntimeAndAvailability();
-  }, [incidents, categoryFilter, subValueFilter, downTypeFilter, searchText]);
+  }, [incidents, categoryFilter, subValueFilter, downTypeFilter, searchText, startDate, endDate]);
 
   useEffect(() => {
     if (editModal.open && editModal.incident) {
@@ -65,7 +70,6 @@ const ViewIncidents = () => {
   const calculateDowntime = (incidents, period) => {
     const now = new Date();
     const today = now.toISOString().split('T')[0];
-    const thisMonth = now.toISOString().slice(0, 7);
     let totalDowntime = 0;
 
     incidents.forEach((incident) => {
@@ -86,10 +90,9 @@ const ViewIncidents = () => {
         periodStart = new Date(today + 'T00:00:00');
         periodEnd = new Date(today + 'T23:59:59');
       } else if (period === 'month') {
-        const year = now.getFullYear();
-        const month = now.getMonth();
-        periodStart = new Date(year, month, 1);
-        periodEnd = new Date(year, month + 1, 0, 23, 59, 59);
+        // Use selected date range instead of current month
+        periodStart = new Date(`${startDate}T00:00:00`);
+        periodEnd = new Date(`${endDate}T23:59:59`);
       }
 
       // Check if incident overlaps with the period
@@ -111,20 +114,19 @@ const ViewIncidents = () => {
   };
 
   const calculateAvailability = (incidents) => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    const monthStart = new Date(year, month, 1, 0, 0, 0);
-    const monthEnd = new Date(year, month + 1, 0, 23, 59, 59);
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    // Use selected date range instead of current month
+    const periodStart = new Date(`${startDate}T00:00:00`);
+    const periodEnd = new Date(`${endDate}T23:59:59`);
+    const totalMinutes = Math.ceil((periodEnd - periodStart) / (1000 * 60));
+    const daysInRange = Math.ceil((periodEnd - periodStart) / (1000 * 60 * 60 * 24));
 
-    // Get unique sub-values that have any overlap with this month
+    // Get unique sub-values that have any overlap with the selected period
     const uniqueSubValues = new Set();
     incidents.forEach(incident => {
       const down = incident.downTimeDate ? new Date(incident.downTimeDate) : null;
       const up = incident.upTimeDate ? new Date(incident.upTimeDate) : null;
       if (!down || !up) return;
-      if (up >= monthStart && down <= monthEnd) {
+      if (up >= periodStart && down <= periodEnd) {
         uniqueSubValues.add(incident.subValue);
       }
     });
@@ -132,7 +134,6 @@ const ViewIncidents = () => {
     const subValueAvailabilities = {};
 
     uniqueSubValues.forEach((sv) => {
-      const totalMinutes = daysInMonth * 24 * 60; // Total minutes in the month
       let totalDowntime = 0;
 
       incidents.forEach((incident) => {
@@ -140,10 +141,10 @@ const ViewIncidents = () => {
         const down = new Date(incident.downTimeDate);
         const up = new Date(incident.upTimeDate);
         if (isNaN(down) || isNaN(up)) return;
-        // Only consider overlap with current month; clip to boundaries
-        if (up >= monthStart && down <= monthEnd) {
-          const clippedDown = down < monthStart ? monthStart : down;
-          const clippedUp = up > monthEnd ? monthEnd : up;
+        // Only consider overlap with selected period; clip to boundaries
+        if (up >= periodStart && down <= periodEnd) {
+          const clippedDown = down < periodStart ? periodStart : down;
+          const clippedUp = up > periodEnd ? periodEnd : up;
           const minutes = (clippedUp - clippedDown) / (1000 * 60);
           if (minutes > 0) totalDowntime += minutes;
         }
@@ -152,17 +153,16 @@ const ViewIncidents = () => {
       subValueAvailabilities[sv] = totalMinutes === 0 ? 100 : ((totalMinutes - totalDowntime) / totalMinutes * 100).toFixed(2);
     });
 
-    // Calculate overall availability for the month (clip to boundaries)
-    const totalMinutes = daysInMonth * 24 * 60;
+    // Calculate overall availability for the selected period (clip to boundaries)
     let totalDowntime = 0;
     incidents.forEach((incident) => {
       if (!incident.downTimeDate || !incident.upTimeDate) return;
       const down = new Date(incident.downTimeDate);
       const up = new Date(incident.upTimeDate);
       if (isNaN(down) || isNaN(up)) return;
-      if (up >= monthStart && down <= monthEnd) {
-        const clippedDown = down < monthStart ? monthStart : down;
-        const clippedUp = up > monthEnd ? monthEnd : up;
+      if (up >= periodStart && down <= periodEnd) {
+        const clippedDown = down < periodStart ? periodStart : down;
+        const clippedUp = up > periodEnd ? periodEnd : up;
         const minutes = (clippedUp - clippedDown) / (1000 * 60);
         if (minutes > 0) totalDowntime += minutes;
       }
@@ -193,7 +193,14 @@ const ViewIncidents = () => {
   };
 
   const calculateCategorySummaries = () => {
-    const categories = ['Core Switch', 'WAN Firewall', 'Access & Distribution Switches', 'Access Points Availability'];
+    const categories = [
+      'Core Switch (Up Links)',
+      'WAN Firewall',
+      'Access & Distribution Switches',
+      'Access Points Availability',
+      'Advantis Sector Switches',
+      'Fabric Sector Switches'
+    ];
     const newCategorySummaries = {};
     
     categories.forEach(category => {
@@ -435,15 +442,11 @@ const ViewIncidents = () => {
     return 'down-type planned'; // default to planned for unknown types
   }
 
-  // Function to calculate planned and unplanned downtime for each sub-value (clip to current month)
+  // Function to calculate planned and unplanned downtime for each sub-value (clip to selected date range)
   const calculateSubValueDowntime = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    const monthStart = new Date(year, month, 1, 0, 0, 0);
-    const monthEnd = new Date(year, month + 1, 0, 23, 59, 59);
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const totalMinutesInMonth = daysInMonth * 24 * 60;
+    const periodStart = new Date(`${startDate}T00:00:00`);
+    const periodEnd = new Date(`${endDate}T23:59:59`);
+    const totalMinutesInPeriod = Math.ceil((periodEnd - periodStart) / (1000 * 60));
 
     const allSubValues = Array.from(new Set(incidents.map(i => i.subValue)));
     const subValueDowntime = {};
@@ -460,10 +463,10 @@ const ViewIncidents = () => {
         const down = new Date(incident.downTimeDate);
         const up = new Date(incident.upTimeDate);
         if (isNaN(down) || isNaN(up) || up <= down) return;
-        // Only count overlap with current month
-        if (up >= monthStart && down <= monthEnd) {
-          const clippedDown = down < monthStart ? monthStart : down;
-          const clippedUp = up > monthEnd ? monthEnd : up;
+        // Only count overlap with selected period
+        if (up >= periodStart && down <= periodEnd) {
+          const clippedDown = down < periodStart ? periodStart : down;
+          const clippedUp = up > periodEnd ? periodEnd : up;
           const minutes = (clippedUp - clippedDown) / (1000 * 60);
           if (minutes > 0) {
             if (incident.downType === 'Planned') plannedDowntime += minutes;
@@ -473,10 +476,10 @@ const ViewIncidents = () => {
       });
 
       const totalDowntime = plannedDowntime + unplannedDowntime;
-      const uptime = totalMinutesInMonth - totalDowntime;
-      const uptimePercentage = ((uptime / totalMinutesInMonth) * 100).toFixed(2);
-      const plannedPercentage = ((plannedDowntime / totalMinutesInMonth) * 100).toFixed(2);
-      const unplannedPercentage = ((unplannedDowntime / totalMinutesInMonth) * 100).toFixed(2);
+      const uptime = totalMinutesInPeriod - totalDowntime;
+      const uptimePercentage = ((uptime / totalMinutesInPeriod) * 100).toFixed(2);
+      const plannedPercentage = ((plannedDowntime / totalMinutesInPeriod) * 100).toFixed(2);
+      const unplannedPercentage = ((unplannedDowntime / totalMinutesInPeriod) * 100).toFixed(2);
 
       subValueDowntime[subValue] = {
         uptime: uptimePercentage,
@@ -485,7 +488,7 @@ const ViewIncidents = () => {
         totalDowntime: Math.round(totalDowntime),
         plannedPercentage: plannedPercentage,
         unplannedPercentage: unplannedPercentage,
-        totalMinutesInMonth: totalMinutesInMonth
+        totalMinutesInPeriod: totalMinutesInPeriod
       };
     });
 
@@ -494,13 +497,12 @@ const ViewIncidents = () => {
 
   // Function to download detailed downtime table as CSV
   const downloadDetailedDowntimeTable = () => {
-    const now = new Date();
-    const monthName = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+    const periodLabel = `${startDate} to ${endDate}`;
     const subValueDowntime = calculateSubValueDowntime();
     
     // Create CSV content
-    let csvContent = `Detailed Downtime Analysis - ${monthName}\n\n`;
-    csvContent += `Uplink,Uptime (%),Downtime - Planned (%),Downtime - Unplanned (%),Total Downtime (Planned + Unplanned) (Out of 720 h),Remarks\n`;
+    let csvContent = `Detailed Downtime Analysis - ${periodLabel}\n\n`;
+    csvContent += `Uplink,Uptime (%),Downtime - Planned (%),Downtime - Unplanned (%),Total Downtime (Planned + Unplanned) (minutes),Remarks\n`;
     
     Object.entries(subValueDowntime).forEach(([subValue, data]) => {
       const remarks = [];
@@ -521,7 +523,7 @@ const ViewIncidents = () => {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `detailed-downtime-analysis-${monthName.replace(' ', '-')}.csv`);
+    link.setAttribute('download', `detailed-downtime-analysis-${startDate}-to-${endDate}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -532,6 +534,22 @@ const ViewIncidents = () => {
     <div className="container">
       <h1>View NOC Incidents</h1>
       <div className="filter-group">
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '10px' }}>
+          <label style={{ color: '#fff', fontWeight: '500' }}>Date Range:</label>
+          <input 
+            type="date" 
+            value={startDate} 
+            onChange={(e) => setStartDate(e.target.value)}
+            style={{ padding: '8px', border: '2px solid #3498db', borderRadius: '6px', fontSize: '14px' }}
+          />
+          <span style={{ color: '#ffc107', fontWeight: '600' }}>to</span>
+          <input 
+            type="date" 
+            value={endDate} 
+            onChange={(e) => setEndDate(e.target.value)}
+            style={{ padding: '8px', border: '2px solid #3498db', borderRadius: '6px', fontSize: '14px' }}
+          />
+        </div>
         <input 
           type="text" 
           placeholder="Search incidents (category, sub-value, remarks, person, dates)" 
@@ -541,10 +559,12 @@ const ViewIncidents = () => {
         />
         <select onChange={(e) => setCategoryFilter(e.target.value)}>
           <option value="">All Categories</option>
-          <option value="Core Switch">Core Switch</option>
+          <option value="Core Switch (Up Links)">Core Switch (Up Links)</option>
           <option value="WAN Firewall">WAN Firewall</option>
           <option value="Access & Distribution Switches">Access & Distribution Switches</option>
           <option value="Access Points Availability">Access Points Availability</option>
+          <option value="Advantis Sector Switches">Advantis Sector Switches</option>
+          <option value="Fabric Sector Switches">Fabric Sector Switches</option>
         </select>
         <select onChange={(e) => setSubValueFilter(e.target.value)}>
           <option value="">All Sub-Values</option>
@@ -590,27 +610,27 @@ const ViewIncidents = () => {
         <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '8px' }}>
           <h4 style={{ margin: '0 0 10px 0', color: '#fff' }}>Overall Summary</h4>
           <p>Daily Downtime (Today): <span>{dailyDowntime}</span> minutes</p>
-          <p>Monthly Downtime (This Month): <span>{monthlyDowntime}</span> minutes</p>
-          <p>Overall Monthly Availability: <span>{overallAvailability}%</span></p>
+          <p>Period Downtime ({startDate} to {endDate}): <span>{monthlyDowntime}</span> minutes</p>
+          <p>Overall Period Availability: <span>{overallAvailability}%</span></p>
           <p>Total Incidents: <span>{filteredIncidents.length}</span></p>
         </div>
 
         {/* Category-wise Summaries */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '15px' }}>
-          {/* Core Switch Summary */}
+          {/* Core Switch (Up Links) Summary */}
           <div style={{ padding: '15px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '8px' }}>
-            <h4 style={{ margin: '0 0 10px 0', color: '#fff' }}>Core Switch</h4>
-            <p>Daily Downtime: <span>{categorySummaries['Core Switch']?.dailyDowntime || 0}</span> minutes</p>
-            <p>Monthly Downtime: <span>{categorySummaries['Core Switch']?.monthlyDowntime || 0}</span> minutes</p>
-            <p>Availability(Monthly): <span>{categorySummaries['Core Switch']?.overallAvailability || '100.00'}%</span></p>
-            <p>Incidents: <span>{categorySummaries['Core Switch']?.incidentCount || 0}</span></p>
+            <h4 style={{ margin: '0 0 10px 0', color: '#fff' }}>Core Switch (Up Links)</h4>
+            <p>Daily Downtime: <span>{categorySummaries['Core Switch (Up Links)']?.dailyDowntime || 0}</span> minutes</p>
+            <p>Period Downtime: <span>{categorySummaries['Core Switch (Up Links)']?.monthlyDowntime || 0}</span> minutes</p>
+            <p>Availability: <span>{categorySummaries['Core Switch (Up Links)']?.overallAvailability || '100.00'}%</span></p>
+            <p>Incidents: <span>{categorySummaries['Core Switch (Up Links)']?.incidentCount || 0}</span></p>
           </div>
 
           {/* WAN Firewall Summary */}
           <div style={{ padding: '15px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '8px' }}>
             <h4 style={{ margin: '0 0 10px 0', color: '#fff' }}>WAN Firewall</h4>
             <p>Daily Downtime: <span>{categorySummaries['WAN Firewall']?.dailyDowntime || 0}</span> minutes</p>
-            <p>Monthly Downtime: <span>{categorySummaries['WAN Firewall']?.monthlyDowntime || 0}</span> minutes</p>
+            <p>Period Downtime: <span>{categorySummaries['WAN Firewall']?.monthlyDowntime || 0}</span> minutes</p>
             <p>Availability: <span>{categorySummaries['WAN Firewall']?.overallAvailability || '100.00'}%</span></p>
             <p>Incidents: <span>{categorySummaries['WAN Firewall']?.incidentCount || 0}</span></p>
           </div>
@@ -619,16 +639,43 @@ const ViewIncidents = () => {
           <div style={{ padding: '15px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '8px' }}>
             <h4 style={{ margin: '0 0 10px 0', color: '#fff' }}>Access & Distribution Switches</h4>
             <p>Daily Downtime: <span>{categorySummaries['Access & Distribution Switches']?.dailyDowntime || 0}</span> minutes</p>
-            <p>Monthly Downtime: <span>{categorySummaries['Access & Distribution Switches']?.monthlyDowntime || 0}</span> minutes</p>
+            <p>Period Downtime: <span>{categorySummaries['Access & Distribution Switches']?.monthlyDowntime || 0}</span> minutes</p>
             <p>Availability: <span>{categorySummaries['Access & Distribution Switches']?.overallAvailability || '100.00'}%</span></p>
             <p>Incidents: <span>{categorySummaries['Access & Distribution Switches']?.incidentCount || 0}</span></p>
+          </div>
+
+          {/* Access Points Availability Summary */}
+          <div style={{ padding: '15px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '8px' }}>
+            <h4 style={{ margin: '0 0 10px 0', color: '#fff' }}>Access Points Availability</h4>
+            <p>Daily Downtime: <span>{categorySummaries['Access Points Availability']?.dailyDowntime || 0}</span> minutes</p>
+            <p>Period Downtime: <span>{categorySummaries['Access Points Availability']?.monthlyDowntime || 0}</span> minutes</p>
+            <p>Availability: <span>{categorySummaries['Access Points Availability']?.overallAvailability || '100.00'}%</span></p>
+            <p>Incidents: <span>{categorySummaries['Access Points Availability']?.incidentCount || 0}</span></p>
+          </div>
+
+          {/* Advantis Sector Switches Summary */}
+          <div style={{ padding: '15px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '8px' }}>
+            <h4 style={{ margin: '0 0 10px 0', color: '#fff' }}>Advantis Sector Switches</h4>
+            <p>Daily Downtime: <span>{categorySummaries['Advantis Sector Switches']?.dailyDowntime || 0}</span> minutes</p>
+            <p>Period Downtime: <span>{categorySummaries['Advantis Sector Switches']?.monthlyDowntime || 0}</span> minutes</p>
+            <p>Availability: <span>{categorySummaries['Advantis Sector Switches']?.overallAvailability || '100.00'}%</span></p>
+            <p>Incidents: <span>{categorySummaries['Advantis Sector Switches']?.incidentCount || 0}</span></p>
+          </div>
+
+          {/* Fabric Sector Switches Summary */}
+          <div style={{ padding: '15px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '8px' }}>
+            <h4 style={{ margin: '0 0 10px 0', color: '#fff' }}>Fabric Sector Switches</h4>
+            <p>Daily Downtime: <span>{categorySummaries['Fabric Sector Switches']?.dailyDowntime || 0}</span> minutes</p>
+            <p>Period Downtime: <span>{categorySummaries['Fabric Sector Switches']?.monthlyDowntime || 0}</span> minutes</p>
+            <p>Availability: <span>{categorySummaries['Fabric Sector Switches']?.overallAvailability || '100.00'}%</span></p>
+            <p>Incidents: <span>{categorySummaries['Fabric Sector Switches']?.incidentCount || 0}</span></p>
           </div>
         </div>
       </div>
       
       {/* Detailed Downtime Analysis Table */}
       <div style={{ marginBottom: '30px' }}>
-        <h3 style={{ color: '#2c3e50', marginBottom: '15px' }}>Detailed Downtime Analysis (This Month)</h3>
+        <h3 style={{ color: '#2c3e50', marginBottom: '15px' }}>Detailed Downtime Analysis ({startDate} to {endDate})</h3>
         <div style={{ overflowX: 'auto', background: 'white', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
@@ -637,7 +684,7 @@ const ViewIncidents = () => {
                 <th style={{ color: 'black', padding: '15px 12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Uptime (%)</th>
                 <th style={{ color: 'black', padding: '15px 12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Downtime - Planned (%)</th>
                 <th style={{ color: 'black', padding: '15px 12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Downtime - Unplanned (%)</th>
-                <th style={{ color: 'black', padding: '15px 12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Total Downtime (Planned + Unplanned) (Out of 720 h)</th>
+                <th style={{ color: 'black', padding: '15px 12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Total Downtime (Planned + Unplanned) (minutes)</th>
                 <th style={{ color: 'black', padding: '15px 12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Remarks</th>
               </tr>
             </thead>
@@ -687,8 +734,8 @@ const ViewIncidents = () => {
             <th>Days Down</th>
             <th>Escalated Person</th>
             <th>Remarks</th>
-            {/* Remove Daily Availability column and add Monthly Availability column */}
-            <th>Monthly Availability (%)</th>
+            {/* Remove Daily Availability column and add Period Availability column */}
+            <th>Period Availability (%)</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -703,7 +750,7 @@ const ViewIncidents = () => {
               <td>{formatDuration(incident.downTimeDate, incident.upTimeDate)}</td>
               <td>{incident.escalatedPerson}</td>
               <td>{incident.remarks || ''}</td>
-              {/* Show monthly availability for the incident's subValue */}
+              {/* Show period availability for the incident's subValue */}
               <td>{subValueAvailabilities[incident.subValue] || '100.00'}%</td>
               <td>
                 <button
@@ -777,10 +824,12 @@ const ViewIncidents = () => {
                   onChange={(e) => setCategoryFilter(e.target.value)}
                 >
                   <option value="">Select Category</option>
-                  <option value="Core Switch">Core Switch</option>
+                  <option value="Core Switch (Up Links)">Core Switch (Up Links)</option>
                   <option value="WAN Firewall">WAN Firewall</option>
                   <option value="Access & Distribution Switches">Access & Distribution Switches</option>
                   <option value="Access Points Availability">Access Points Availability</option>
+                  <option value="Advantis Sector Switches">Advantis Sector Switches</option>
+                  <option value="Fabric Sector Switches">Fabric Sector Switches</option>
                 </select>
               </div>
               <div className="form-group">
@@ -834,7 +883,7 @@ const ViewIncidents = () => {
             <span className="close" onClick={() => setAvailabilityModal(false)}>
               ×
             </span>
-            <h2>Sub-Value Availability (This Month)</h2>
+            <h2>Sub-Value Availability ({startDate} to {endDate})</h2>
             <table>
               <thead>
                 <tr>

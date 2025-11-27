@@ -14,13 +14,15 @@ router.get('/', async (req, res) => {
 
 // Create new incident
 router.post('/', async (req, res) => {
-    try {
-        const incident = new Incident({ ...req.body, id: Date.now() });
-        await incident.save();
-        res.status(200).json({ message: 'Incident added successfully' });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to save incident' });
-    }
+  try {
+    console.log("Incoming data:", req.body);
+    const incident = new Incident({ ...req.body, id: Date.now() });
+    await incident.save();
+    res.status(200).json({ message: 'Incident added successfully' });
+  } catch (error) {
+    console.error("Error saving incident:", error.message);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Update an incident

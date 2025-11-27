@@ -4,9 +4,11 @@ import html2canvas from 'html2canvas';
 import '../css/UplinkTable.css';
 
 const categories = [
-  'Core Switch',
+  'Core Switch (Up Links)',
   'WAN Firewall',
   'Access & Distribution Switches',
+  'Advantis Sector Switches',
+  'Fabric Sector Switches',
   'Access Points Availability'
 ];
 

@@ -314,10 +314,12 @@ const AddIncident = () => {
             style={{ marginBottom: '10px' }}
           >
             <option value="">Select Category</option>
-            <option value="Core Switch">Core Switch</option>
+            <option value="Core Switch (Up Links)">Core Switch (Up Links)</option>
             <option value="WAN Firewall">WAN Firewall</option>
             <option value="Access & Distribution Switches">Access & Distribution Switches</option>
             <option value="Access Points Availability">Access Points Availability</option>
+            <option value="Advantis Sector Switches">Advantis Sector Switches</option>
+            <option value="Fabric Sector Switches">Fabric Sector Switches</option>
           </select>
           
           {category && subValueOptions.length > 0 && (
@@ -377,10 +379,12 @@ const AddIncident = () => {
             onChange={handleCategoryChange}
           >
             <option value="">Select Category</option>
-            <option value="Core Switch">Core Switch</option>
+            <option value="Core Switch (Up Links)">Core Switch (Up Links)</option>
             <option value="WAN Firewall">WAN Firewall</option>
             <option value="Access & Distribution Switches">Access & Distribution Switches</option>
             <option value="Access Points Availability">Access Points Availability</option>
+            <option value="Advantis Sector Switches">Advantis Sector Switches</option>
+            <option value="Fabric Sector Switches">Fabric Sector Switches</option>
           </select>
         </div>
         

@@ -264,9 +264,11 @@ const downloadComprehensiveChart = (category, up100, below100, up100Percent, bel
 // Function to download availability report as CSV
 const downloadAvailabilityReport = (allIncidents, startDateStr, endDateStr) => {
   const categories = [
-    "Core Switch",
+    "Core Switch (Up Links)",
     "WAN Firewall",
     "Access & Distribution Switches",
+    "Advantis Sector Switches",
+    "Fabric Sector Switches",
     "Access Points Availability"
   ];
 
@@ -334,7 +336,7 @@ const AvailabilityReport = () => {
   useEffect(() => {
     axios.get('http://localhost:5000/api/incidents').then(res => {
       setAllIncidents(res.data);
-      const data = calculateRangeAvailability(res.data, 'Core Switch', startDate, endDate);
+      const data = calculateRangeAvailability(res.data, 'Core Switch (Up Links)', startDate, endDate);
       setAvailabilities(data);
       setLoading(false);
     }).catch(err => {
@@ -426,9 +428,11 @@ const AvailabilityReport = () => {
   const periodLabel = `${startDate} → ${endDate}`;
 
   const categories = [
-    "Core Switch",
+    "Core Switch (Up Links)",
     "WAN Firewall",
     "Access & Distribution Switches",
+    "Advantis Sector Switches",
+    "Fabric Sector Switches",
     "Access Points Availability"
   ];
 

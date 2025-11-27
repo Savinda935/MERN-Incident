@@ -2,7 +2,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import '../css/Dashboard.css';
 
-const categories = ['Core Switch', 'WAN Firewall', 'Access & Distribution Switches', 'Access Points Availability'];
+const categories = [
+  'Core Switch (Up Links)',
+  'WAN Firewall',
+  'Access & Distribution Switches',
+  'Advantis Sector Switches',
+  'Fabric Sector Switches',
+  'Access Points Availability'
+];
 
 const Analytics = () => {
   const [incidents, setIncidents] = useState([]);
