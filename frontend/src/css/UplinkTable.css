@@ -1,6 +1,6 @@
 .uplink-container {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 100%);
+  background: linear-gradient(135deg, #0a0a08 0%, #1a1a15 100%);
   color: #ffffff;
   width: 100%;
   max-width: 1400px;
@@ -10,12 +10,12 @@
 }
 
 .table-header {
-  background: linear-gradient(135deg, #222 0%, #333 100%);
+  background: linear-gradient(135deg, #1a1a10 0%, #2a2a1a 100%);
   padding: 20px 30px;
   margin: 0 0 30px 0;
   border-radius: 15px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  border: 1px solid #444;
+  box-shadow: 0 8px 32px rgba(255, 193, 7, 0.15);
+  border: 1px solid #3a3a25;
   position: relative;
   overflow: hidden;
 }
@@ -44,20 +44,20 @@
 .uplink-table {
   width: 100%;
   border-collapse: collapse;
-  background: linear-gradient(135deg, #111 0%, #1a1a1a 100%);
+  background: linear-gradient(135deg, #0d0d08 0%, #1a1a12 100%);
   border-radius: 15px;
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  border: 1px solid #333;
+  box-shadow: 0 8px 32px rgba(255, 193, 7, 0.1);
+  border: 1px solid #2a2a1a;
 }
 
 .uplink-table th {
-  background: linear-gradient(135deg, #0a0a0a 0%, #2a2a2a 50%, #3a3a3a 100%);
+  background: linear-gradient(135deg, #1a1a0e 0%, #2a2a18 50%, #3a3a22 100%);
   color: #ffc107;
   font-weight: 600;
   padding: 15px 12px;
   text-align: center;
-  border: 1px solid #444;
+  border: 1px solid #3a3a25;
   font-size: 14px;
   position: sticky;
   top: 0;
@@ -114,7 +114,7 @@
 }
 
 .sub-headers th {
-  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 50%, #3a3a3a 100%);
+  background: linear-gradient(135deg, #1a1a10 0%, #2a2a18 50%, #3a3a22 100%);
   padding: 10px 8px;
   font-size: 12px;
   color: #ffc107;
@@ -134,19 +134,19 @@
 
 .uplink-table td {
   padding: 12px 8px;
-  border: 1px solid #333;
+  border: 1px solid #2a2a1a;
   vertical-align: top;
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+  background: linear-gradient(135deg, #0a0a08 0%, #1a1a12 100%);
   transition: background 0.2s ease;
 }
 
 .uplink-table tbody tr:hover td {
-  background: linear-gradient(135deg, #151515 0%, #252525 100%);
+  background: linear-gradient(135deg, #151510 0%, #25251a 100%);
 }
 
 /* Enhanced yellow mix for specific columns */
 .uplink-name {
-  background: linear-gradient(135deg, #0d0d0d 0%, #1d1d1d 100%), 
+  background: linear-gradient(135deg, #0d0d0a 0%, #1d1d15 100%), 
               linear-gradient(45deg, rgba(255, 193, 7, 0.06) 0%, transparent 40%, rgba(255, 193, 7, 0.06) 60%, transparent 100%) !important;
   color: #ffffff;
   text-align: left;
@@ -174,14 +174,14 @@
 .planned,
 .unplanned,
 .total-downtime {
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%), 
+  background: linear-gradient(135deg, #0a0a08 0%, #1a1a12 100%), 
               linear-gradient(45deg, rgba(255, 193, 7, 0.07) 0%, transparent 35%, rgba(255, 193, 7, 0.07) 65%, transparent 100%) !important;
   color: #ffffff;
   text-align: center;
 }
 
 .remarks {
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%), 
+  background: linear-gradient(135deg, #0a0a08 0%, #1a1a12 100%), 
               linear-gradient(45deg, rgba(255, 193, 7, 0.09) 0%, transparent 25%, rgba(255, 193, 7, 0.09) 75%, transparent 100%) !important;
   color: #ffffff;
   text-align: left;
@@ -199,7 +199,7 @@
 }
 
 .downtime-row .uplink-name {
-  background: linear-gradient(135deg, #0f0f0f 0%, #1f1f1f 100%), 
+  background: linear-gradient(135deg, #0f0f0c 0%, #1f1f18 100%), 
               linear-gradient(45deg, rgba(255, 193, 7, 0.08) 0%, transparent 35%, rgba(255, 193, 7, 0.08) 65%, transparent 100%) !important;
 }
 
@@ -207,28 +207,28 @@
 .downtime-row .unplanned,
 .downtime-row .total-downtime,
 .downtime-row .remarks {
-  background: linear-gradient(135deg, #0c0c0c 0%, #1c1c1c 100%), 
+  background: linear-gradient(135deg, #0c0c09 0%, #1c1c15 100%), 
               linear-gradient(45deg, rgba(255, 193, 7, 0.11) 0%, transparent 30%, rgba(255, 193, 7, 0.11) 70%, transparent 100%) !important;
 }
 
 /* Yellow-mixed black background for table columns */
 .uplink-table tbody tr td:not(.uptime):not(.uptime-good):not(.uptime-warning) {
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%), 
+  background: linear-gradient(135deg, #0a0a08 0%, #1a1a12 100%), 
               linear-gradient(45deg, rgba(255, 193, 7, 0.08) 0%, transparent 30%, rgba(255, 193, 7, 0.08) 70%, transparent 100%) !important;
 }
 
 .uplink-table tbody tr:hover td:not(.uptime):not(.uptime-good):not(.uptime-warning) {
-  background: linear-gradient(135deg, #151515 0%, #252525 100%), 
+  background: linear-gradient(135deg, #151510 0%, #25251a 100%), 
               linear-gradient(45deg, rgba(255, 193, 7, 0.12) 0%, transparent 30%, rgba(255, 193, 7, 0.12) 70%, transparent 100%) !important;
 }
 
 .downtime-row td:not(.uptime):not(.uptime-good):not(.uptime-warning) {
-  background: linear-gradient(135deg, #0c0c0c 0%, #1c1c1c 100%), 
+  background: linear-gradient(135deg, #0c0c09 0%, #1c1c15 100%), 
               linear-gradient(45deg, rgba(255, 193, 7, 0.10) 0%, transparent 30%, rgba(255, 193, 7, 0.10) 70%, transparent 100%) !important;
 }
 
 .table-footer {
-  background: linear-gradient(135deg, #222 0%, #333 100%);
+  background: linear-gradient(135deg, #1a1a10 0%, #2a2a1a 100%);
   padding: 15px 20px;
   display: flex;
   justify-content: space-between;
@@ -236,7 +236,7 @@
   color: #ffc107;
   font-weight: 600;
   font-size: 14px;
-  border-top: 1px solid #444;
+  border-top: 1px solid #3a3a25;
 }
 
 .footer-left,
@@ -246,12 +246,12 @@
 
 /* Category section styling */
 .category-section {
-  background: linear-gradient(135deg, #222 0%, #333 100%);
+  background: linear-gradient(135deg, #1a1a10 0%, #2a2a1a 100%);
   border-radius: 20px;
   padding: 30px;
   margin-bottom: 40px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  border: 1px solid #444;
+  box-shadow: 0 8px 32px rgba(255, 193, 7, 0.15);
+  border: 1px solid #3a3a25;
 }
 
 .category-header {
@@ -343,14 +343,14 @@
 }
 
 .modal-content {
-  background: linear-gradient(135deg, #222 0%, #333 100%);
+  background: linear-gradient(135deg, #1a1a10 0%, #2a2a1a 100%);
   border-radius: 20px;
   padding: 30px;
   max-width: 90%;
   max-height: 90%;
   overflow-y: auto;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  border: 1px solid #444;
+  box-shadow: 0 8px 32px rgba(255, 193, 7, 0.2);
+  border: 1px solid #3a3a25;
   position: relative;
 }
 
@@ -369,32 +369,72 @@
   color: #ff8c00;
 }
 
+/* ✅ Updated Modal Table Styling (matches main uplink table) */
 .modal-table {
   width: 100%;
   border-collapse: collapse;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 10px;
+  background: linear-gradient(135deg, #0d0d08 0%, #1a1a12 100%);
+  border-radius: 15px;
   overflow: hidden;
-  margin-top: 20px;
+  box-shadow: 0 8px 32px rgba(255, 193, 7, 0.15);
+  border: 1px solid #2a2a1a;
 }
 
 .modal-table th {
-  background: linear-gradient(135deg, #444 0%, #555 100%);
+  background: linear-gradient(135deg, #1a1a0e 0%, #ffffff 50%, #eded4c 100%);
   color: #ffc107;
-  padding: 12px 8px;
-  text-align: left;
   font-weight: 600;
-  border-bottom: 2px solid #ffc107;
+  padding: 14px 10px;
+  text-align: center;
+  border: 1px solid #dadab3;
+  font-size: 13px;
+  position: relative;
+}
+
+.modal-table th::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #ffc107, #ff8c00);
 }
 
 .modal-table td {
-  padding: 10px 8px;
-  border-bottom: 1px solid #444;
-  background: rgba(255, 255, 255, 0.03);
+  padding: 12px 10px;
+  border: 1px solid #2a2a1a;
+  background: linear-gradient(135deg, #f7f7f4 0%, #f1f1ec 100%), 
+              linear-gradient(45deg, rgba(255, 193, 7, 0.08) 0%, transparent 30%, rgba(255, 193, 7, 0.08) 70%, transparent 100%) !important;
+  color: #ffffff;
+  text-align: center;
+  transition: background 0.2s ease;
 }
 
 .modal-table tbody tr:hover td {
-  background: rgba(255, 255, 255, 0.08);
+  background: linear-gradient(135deg, #f3cf64 0%, #f6f655 100%), 
+              linear-gradient(45deg, rgba(255, 193, 7, 0.12) 0%, transparent 30%, rgba(255, 193, 7, 0.12) 70%, transparent 100%) !important;
+}
+
+.modal-table .uptime-good {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+  color: #fff;
+  font-weight: bold;
+}
+
+.modal-table .uptime-warning {
+  background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%) !important;
+  color: #000;
+  font-weight: bold;
+}
+
+.modal-table tfoot td {
+  background: linear-gradient(135deg, #1a1a10 0%, #2a2a1a 100%);
+  color: #ffc107;
+  font-weight: 600;
+  text-align: right;
+  border-top: 2px solid #3a3a25;
+  padding: 10px;
 }
 
 /* Responsive adjustments */
@@ -448,6 +488,11 @@
 
   .modal-content {
     padding: 20px;
-    margin: 10px;
+  }
+
+  .modal-table th,
+  .modal-table td {
+    font-size: 12px;
+    padding: 8px;
   }
 }
