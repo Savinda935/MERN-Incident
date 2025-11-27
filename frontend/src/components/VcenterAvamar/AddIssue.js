@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
+const CATEGORY_OPTIONS = ['Vcenter', 'Avamar'];
+
 const AddIssue = () => {
     const [formData, setFormData] = useState({
+        category: CATEGORY_OPTIONS[0],
         Date: '',
         host: '',
         status: '',
@@ -19,7 +22,7 @@ const AddIssue = () => {
         try {
             await axios.post('http://localhost:5000/api/vc_am', formData);
             alert('Issue added successfully!');
-            setFormData({ Date: '', host: '', status: '', remarks: '' });
+            setFormData({ category: CATEGORY_OPTIONS[0], Date: '', host: '', status: '', remarks: '' });
         } catch (error) {
             console.error('Error adding issue:', error);
             alert('Failed to add issue.');
@@ -30,6 +33,21 @@ const AddIssue = () => {
         <div>
             <h1>Add Issue</h1>
             <form onSubmit={handleSubmit}>
+                <div>
+                    <label>Category:</label>
+                    <select
+                        name="category"
+                        value={formData.category}
+                        onChange={handleChange}
+                        required
+                    >
+                        {CATEGORY_OPTIONS.map(option => (
+                            <option key={option} value={option}>
+                                {option}
+                            </option>
+                        ))}
+                    </select>
+                </div>
                 <div>
                     <label>Date:</label>
                     <input
