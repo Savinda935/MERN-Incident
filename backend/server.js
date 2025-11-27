@@ -4,8 +4,7 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const incidentRoutes = require('./routes/incidentRoutes');
-
-//hi
+const VcAmRoutes = require('./routes/Vc,AmRoutes');
 
 dotenv.config();
 
@@ -28,6 +27,7 @@ mongoose.connect(process.env.MONGO_URI, {
 
 // Use routes
 app.use('/api/incidents', incidentRoutes);
+app.use('/api/vc_am', VcAmRoutes);
 
 // 404 handler for undefined routes
 app.use((req, res, next) => {
