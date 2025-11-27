@@ -40,6 +40,17 @@ const Sidebar = ({ activeMenu, onMenuChange, currentUser, onLogout }) => {
       icon: '📊',
       path: '/analytics'
     },
+
+    {
+      id: 'vcenter/avamar',
+      title: 'Vcenter/Avamar',
+      icon: '📈',
+      path: '/vc_am',
+      submenu: [
+        { id: 'vcenter-avamar-add', title: 'Add Issues', path: '/vcenter-avamar/add' },
+        { id: 'vcenter-avamar-view', title: 'View Issues', path: '/vcenter-avamar/view' },
+      ]
+    },
     {
       id: 'settings',
       title: 'Settings',

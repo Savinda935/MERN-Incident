@@ -7,6 +7,8 @@ import Dashboard from './Dashboard';
 import AvailabilityReport from './AvailabilityReport';
 import UplinkAvailabilityTable from './UplinkAvailabilityTable';
 import Analytics from './Analytics';
+import AddIssue from './VcenterAvamar/AddIssue';
+import ViewIssue from './VcenterAvamar/ViewIssue';
 import '../css/MainLayout.css';
 
 const MainLayout = () => {
@@ -95,6 +97,10 @@ const MainLayout = () => {
         </div>;
       case 'analytics':
         return <Analytics />;
+      case 'vcenter-avamar-add':
+        return <AddIssue />;
+      case 'vcenter-avamar-view':
+        return <ViewIssue />;
       case 'settings':
         return <div className="content-placeholder">
           <h2>Settings</h2>
@@ -196,7 +202,9 @@ const getPageTitle = (menuId) => {
     'settings': 'Settings',
     'user-management': 'User Management',
     'system-config': 'System Configuration',
-    'notifications': 'Notification Settings'
+    'notifications': 'Notification Settings',
+    'vcenter-avamar-add': 'Add Vcenter/Avamar Issue',
+    'vcenter-avamar-view': 'View Vcenter/Avamar Issues'
   };
   return titles[menuId] || 'Dashboard';
 };
