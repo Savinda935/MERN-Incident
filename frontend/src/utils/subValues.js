@@ -151,6 +151,18 @@ export const subValues = {
       "HAY-FAB-YWH-001",
 
     ],
+    "SAT Sector Switches":[
+      "SAT_CORE-SW-01",
+      "SAT_PRINTING_LAB_SW1",
+      "SAT_GUARD_ROOM_02_SW",
+      "SAT_KNITTING-SW",
+      "SAT_COLOUR_LAB_SW1",
+      "SAT-MARKETING-SW1",
+      "SAT-MARKETING-SW2",
+      "SAT-MARKETING-SW3",
+      "SAT-FINISHED-WH-SW",
+      "SAT-PRINTING-SW",
+    ],
 
   };
   

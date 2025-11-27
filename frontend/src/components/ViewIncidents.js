@@ -29,6 +29,7 @@ const ViewIncidents = () => {
     'Access Points Availability': { dailyDowntime: 0, monthlyDowntime: 0, overallAvailability: '100.00', incidentCount: 0 },
     'Advantis Sector Switches': { dailyDowntime: 0, monthlyDowntime: 0, overallAvailability: '100.00', incidentCount: 0 },
     'Fabric Sector Switches': { dailyDowntime: 0, monthlyDowntime: 0, overallAvailability: '100.00', incidentCount: 0 },
+    'SAT Sector Switches': { dailyDowntime: 0, monthlyDowntime: 0, overallAvailability: '100.00', incidentCount: 0 },
   });
 
   useEffect(() => {
@@ -199,7 +200,8 @@ const ViewIncidents = () => {
       'Access & Distribution Switches',
       'Access Points Availability',
       'Advantis Sector Switches',
-      'Fabric Sector Switches'
+      'Fabric Sector Switches',
+      'SAT Sector Switches'
     ];
     const newCategorySummaries = {};
     
@@ -565,6 +567,7 @@ const ViewIncidents = () => {
           <option value="Access Points Availability">Access Points Availability</option>
           <option value="Advantis Sector Switches">Advantis Sector Switches</option>
           <option value="Fabric Sector Switches">Fabric Sector Switches</option>
+          <option value="SAT Sector Switches">SAT Sector Switches</option>
         </select>
         <select onChange={(e) => setSubValueFilter(e.target.value)}>
           <option value="">All Sub-Values</option>
@@ -669,6 +672,15 @@ const ViewIncidents = () => {
             <p>Period Downtime: <span>{categorySummaries['Fabric Sector Switches']?.monthlyDowntime || 0}</span> minutes</p>
             <p>Availability: <span>{categorySummaries['Fabric Sector Switches']?.overallAvailability || '100.00'}%</span></p>
             <p>Incidents: <span>{categorySummaries['Fabric Sector Switches']?.incidentCount || 0}</span></p>
+          </div>
+
+          {/* SAT Sector Switches Summary */}
+          <div style={{ padding: '15px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '8px' }}>
+            <h4 style={{ margin: '0 0 10px 0', color: '#fff' }}>SAT Sector Switches</h4>
+            <p>Daily Downtime: <span>{categorySummaries['SAT Sector Switches']?.dailyDowntime || 0}</span> minutes</p>
+            <p>Period Downtime: <span>{categorySummaries['SAT Sector Switches']?.monthlyDowntime || 0}</span> minutes</p>
+            <p>Availability: <span>{categorySummaries['SAT Sector Switches']?.overallAvailability || '100.00'}%</span></p>
+            <p>Incidents: <span>{categorySummaries['SAT Sector Switches']?.incidentCount || 0}</span></p>
           </div>
         </div>
       </div>
@@ -830,6 +842,7 @@ const ViewIncidents = () => {
                   <option value="Access Points Availability">Access Points Availability</option>
                   <option value="Advantis Sector Switches">Advantis Sector Switches</option>
                   <option value="Fabric Sector Switches">Fabric Sector Switches</option>
+                  <option value="SAT Sector Switches">SAT Sector Switches</option>
                 </select>
               </div>
               <div className="form-group">

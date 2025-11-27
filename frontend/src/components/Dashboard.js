@@ -123,7 +123,8 @@ const Dashboard = () => {
         'Access & Distribution Switches',
         'Access Points Availability',
         'Advantis Sector Switches',
-        'Fabric Sector Switches'
+        'Fabric Sector Switches',
+        'SAT Sector Switches'
       ];
       const healthData = categories.map(category => {
         const categoryIncidents = incidents.filter(inc => inc.category === category);

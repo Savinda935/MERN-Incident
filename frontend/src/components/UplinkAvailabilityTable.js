@@ -9,7 +9,8 @@ const categories = [
   'Access & Distribution Switches',
   'Advantis Sector Switches',
   'Fabric Sector Switches',
-  'Access Points Availability'
+  'Access Points Availability',
+  'SAT Sector Switches'
 ];
 
 const UplinkAvailabilityTable = () => {
