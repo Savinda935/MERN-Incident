@@ -320,6 +320,7 @@ const AddIncident = () => {
             <option value="Access Points Availability">Access Points Availability</option>
             <option value="Advantis Sector Switches">Advantis Sector Switches</option>
             <option value="Fabric Sector Switches">Fabric Sector Switches</option>
+            <option value="SAT Sector Switches">SAT Sector Switches</option>
           </select>
           
           {category && subValueOptions.length > 0 && (
@@ -385,6 +386,7 @@ const AddIncident = () => {
             <option value="Access Points Availability">Access Points Availability</option>
             <option value="Advantis Sector Switches">Advantis Sector Switches</option>
             <option value="Fabric Sector Switches">Fabric Sector Switches</option>
+            <option value="SAT Sector Switches">SAT Sector Switches</option>
           </select>
         </div>
         
