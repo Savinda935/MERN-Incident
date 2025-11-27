@@ -5,6 +5,8 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const incidentRoutes = require('./routes/incidentRoutes');
 
+//hi
+
 dotenv.config();
 
 const app = express();
