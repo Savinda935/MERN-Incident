@@ -9,6 +9,7 @@ import UplinkAvailabilityTable from './UplinkAvailabilityTable';
 import Analytics from './Analytics';
 import AddIssue from './VcenterAvamar/AddIssue';
 import ViewIssue from './VcenterAvamar/ViewIssue';
+import SectorSummary from './SectorSummary';
 import '../css/MainLayout.css';
 
 const MainLayout = () => {
@@ -22,7 +23,7 @@ const MainLayout = () => {
   const incidentsSignatureRef = useRef('');
   const pulseTimeoutRef = useRef(null);
 
-  const handleMenuChange = (menuId) => {
+  const handleMenuChange = (menuId, path) => {
     setActiveMenu(menuId);
   };
 
@@ -90,6 +91,8 @@ const MainLayout = () => {
         return <AvailabilityReport />;
       case 'downtime-report':
         return  <UplinkAvailabilityTable/>;
+      case 'sector-summary':
+        return <SectorSummary />;
       case 'monthly-summary':
         return <div className="content-placeholder">
           <h2>Monthly Summary</h2>
@@ -197,6 +200,7 @@ const getPageTitle = (menuId) => {
     'reports': 'Reports',
     'availability-report': 'Availability Report',
     'downtime-report': 'Downtime Report',
+    'sector-summary': 'Sector Summary',
     'monthly-summary': 'Monthly Summary',
     'analytics': 'Analytics',
     'settings': 'Settings',

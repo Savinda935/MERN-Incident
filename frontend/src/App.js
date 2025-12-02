@@ -7,6 +7,7 @@ import AvailabilityReport from './components/AvailabilityReport';
 import UplinkAvailabilityTable from './components/UplinkAvailabilityTable';
 import AddIssue from './components/VcenterAvamar/AddIssue';
 import ViewIssue from './components/VcenterAvamar/ViewIssue';
+import SectorSummary from './components/SectorSummary';
 import './App.css';
 
 function App() {
@@ -18,8 +19,10 @@ function App() {
         <Route path="/add" element={<AddIncident />} />
         <Route path="/availability-report" element={<AvailabilityReport />} />
         <Route path="/uplink-availability" element={<UplinkAvailabilityTable />} />
+        <Route path="/sector-summary" element={<SectorSummary />} />
         <Route path="/vcenter-avamar/add" element={<AddIssue />} />
         <Route path="/vcenter-avamar/view" element={<ViewIssue />} />
+        
       </Routes>
     </Router>
   );
