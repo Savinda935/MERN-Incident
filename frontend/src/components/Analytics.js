@@ -34,6 +34,7 @@ const categories = [
 const Analytics = () => {
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [hoveredCategory, setHoveredCategory] = useState(null);
 
   // Reporting period - explicit date range
   const [reportStartDate, setReportStartDate] = useState(() => {
@@ -94,6 +95,8 @@ const Analytics = () => {
     const availabilityByCategory = categories.map(cat => {
       const incs = periodIncidents.filter(i => i.category === cat);
       let downtime = 0;
+      let plannedCount = 0;
+      let unplannedCount = 0;
       incs.forEach(i => {
         if (i.downTimeDate && i.upTimeDate && i.downType !== 'Not Down') {
           const down = new Date(i.downTimeDate);
@@ -103,11 +106,18 @@ const Analytics = () => {
             const clippedDown = down < start ? start : down;
             const clippedUp = up > end ? end : up;
             downtime += (clippedUp - clippedDown) / (1000 * 60);
+            if (i.downType === 'Planned') plannedCount++;
+            else if (i.downType === 'Unplanned') unplannedCount++;
           }
         }
       });
       const avail = totalMinutes > 0 ? ((totalMinutes - downtime) / totalMinutes) * 100 : 100;
-      return { category: cat, availability: avail.toFixed(2) };
+      return { 
+        category: cat, 
+        availability: avail.toFixed(2),
+        planned: plannedCount,
+        unplanned: unplannedCount
+      };
     });
 
     // Top N uplinks by downtime
@@ -221,7 +231,36 @@ const Analytics = () => {
         </div>
 
         {metrics.availabilityByCategory.map(item => (
-          <div key={item.category} className="stat-card">
+          <div 
+            key={item.category} 
+            className="stat-card"
+            style={{ position: 'relative', cursor: 'pointer' }}
+            onMouseEnter={() => setHoveredCategory(item.category)}
+            onMouseLeave={() => setHoveredCategory(null)}
+            onClick={() => setHoveredCategory(hoveredCategory === item.category ? null : item.category)}
+          >
+            {hoveredCategory === item.category && (
+              <div 
+                style={{
+                  position: 'absolute',
+                  top: '-60px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  backgroundColor: '#2c3e50',
+                  color: '#fff',
+                  padding: '10px 16px',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  whiteSpace: 'nowrap',
+                  zIndex: 1000,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                  border: '2px solid #3498db'
+                }}
+              >
+                📌 Planned: <span style={{ color: '#27ae60' }}>{item.planned}</span> | Unplanned: <span style={{ color: '#e74c3c' }}>{item.unplanned}</span>
+              </div>
+            )}
             <div className="stat-icon">✅</div>
             <div className="stat-content">
               <h3>{item.category} Uptime</h3>
