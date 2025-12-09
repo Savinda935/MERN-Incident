@@ -41,6 +41,8 @@ const UplinkAvailabilityTable = () => {
   const [modalIncidents, setModalIncidents] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [modalUplink, setModalUplink] = useState('');
+  const [selectedIncident, setSelectedIncident] = useState(null);
+  const [showIncidentModal, setShowIncidentModal] = useState(false);
   const modalTableRef = useRef(null);
   const [startDate, setStartDate] = useState(() => {
     const firstOfMonth = new Date(new Date().setDate(1)).toISOString().slice(0, 10);
@@ -1042,11 +1044,12 @@ const UplinkAvailabilityTable = () => {
                   <th>Up Time Date & Time</th>
                   <th>Escalated Person</th>
                   <th>Remarks</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {modalIncidents.map((inc, idx) => (
-                  <tr key={idx}>
+                  <tr key={idx} className={inc.downType === 'Planned' ? 'planned-row' : inc.downType === 'Unplanned' ? 'unplanned-row' : ''}>
                     <td>{inc.category}</td>
                     <td>{inc.subValue}</td>
                     <td>{inc.downTimeDate}</td>
@@ -1054,10 +1057,59 @@ const UplinkAvailabilityTable = () => {
                     <td>{inc.upTimeDate}</td>
                     <td>{inc.escalatedPerson}</td>
                     <td>{inc.remarks}</td>
+                    <td>
+                      <button
+                        className="action-btn"
+                        onClick={() => { setSelectedIncident(inc); setShowIncidentModal(true); }}
+                      >
+                        View
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Small modal to view single incident details and download CSV */}
+      {showIncidentModal && selectedIncident && (
+        <div className="modal">
+          <div className="modal-content">
+            <span className="close" onClick={() => { setShowIncidentModal(false); setSelectedIncident(null); }}>&times;</span>
+            <h3>Incident Details</h3>
+            <table className="modal-table small">
+              <tbody>
+                {Object.entries(selectedIncident).map(([k, v]) => (
+                  <tr key={k}>
+                    <td style={{ fontWeight: 700, padding: '8px 12px', width: '200px' }}>{k}</td>
+                    <td style={{ padding: '8px 12px' }}>{String(v)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+              <button
+                className="download-btn"
+                onClick={() => {
+                  const inc = selectedIncident;
+                  const headers = Object.keys(inc);
+                  const csv = [headers.join(','), headers.map(h => '"' + String(inc[h] ?? '') + '"').join(',')].join('\n');
+                  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                  const link = document.createElement('a');
+                  const url = URL.createObjectURL(blob);
+                  link.setAttribute('href', url);
+                  link.setAttribute('download', `incident-${(inc.id || inc._id || 'detail')}.csv`);
+                  link.style.visibility = 'hidden';
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }}
+              >
+                ⤓ Download CSV
+              </button>
+            </div>
           </div>
         </div>
       )}
