@@ -1,10 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import '../css/Sidebar.css'; // Assuming you have a CSS file for styling
 
 const Sidebar = ({ activeMenu, onMenuChange, currentUser, onLogout }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const menuItems = [
+  useEffect(() => {
+    // Check if user is authenticated
+    const checkAuth = () => {
+      const token = localStorage.getItem("token");
+      setIsAuthenticated(!!token);
+    };
+    
+    checkAuth();
+    
+    // Listen for storage changes (when user logs in/out in another tab)
+    window.addEventListener('storage', checkAuth);
+    
+    // Also check periodically (in case token is removed in same tab)
+    const interval = setInterval(checkAuth, 1000);
+    
+    return () => {
+      window.removeEventListener('storage', checkAuth);
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Base menu items (always visible when authenticated)
+  const baseMenuItems = [
     {
       id: 'dashboard',
       title: 'Dashboard',
@@ -41,7 +66,6 @@ const Sidebar = ({ activeMenu, onMenuChange, currentUser, onLogout }) => {
       icon: '📊',
       path: '/analytics'
     },
-
     {
       id: 'vcenter/avamar',
       title: 'Vcenter/Avamar',
@@ -65,6 +89,25 @@ const Sidebar = ({ activeMenu, onMenuChange, currentUser, onLogout }) => {
     }
   ];
 
+  // Auth menu items (only visible when not authenticated)
+  const authMenuItems = [
+    {
+      id: 'login',
+      title: 'Login',
+      icon: '🔑',
+      path: '/login'
+    },
+    {
+      id: 'register',
+      title: 'Register',
+      icon: '📝',
+      path: '/register'
+    }
+  ];
+
+  // Combine menu items based on authentication status
+  const menuItems = isAuthenticated ? baseMenuItems : authMenuItems;
+
   const [expandedMenus, setExpandedMenus] = useState({});
 
   const toggleSubmenu = (menuId) => {
@@ -78,7 +121,11 @@ const Sidebar = ({ activeMenu, onMenuChange, currentUser, onLogout }) => {
     if (item.submenu) {
       toggleSubmenu(item.id);
     } else {
-      onMenuChange(item.id, item.path);
+      if (item.id === 'login' || item.id === 'register') {
+        navigate(item.path); // Use React Router navigation
+      } else {
+        onMenuChange(item.id, item.path);
+      }
     }
   };
 
@@ -87,102 +134,115 @@ const Sidebar = ({ activeMenu, onMenuChange, currentUser, onLogout }) => {
   };
 
   const handleLogout = () => {
+    // Clear token from localStorage
+    localStorage.removeItem("token");
+    localStorage.removeItem("userEmail");
+    setIsAuthenticated(false);
+    
+    // Call onLogout callback if provided
     if (onLogout) {
       onLogout();
     }
+    
+    // Navigate to login page
+    navigate("/login");
   };
 
   return (
-    <div className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
-      <div className="sidebar-header">
-        <div className="logo">
-          <span className="logo-icon">🖧</span>
-          {!isCollapsed && <span className="logo-text">NOC System</span>}
+    <>
+      <div className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
+        <div className="sidebar-header">
+          <div className="logo">
+            <span className="logo-icon">🖧</span>
+            {!isCollapsed && <span className="logo-text">NOC System</span>}
+          </div>
+          <button 
+            className="collapse-btn"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+          >
+            {isCollapsed ? '☰' : '◀'}
+          </button>
         </div>
-        <button 
-          className="collapse-btn"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-        >
-          {isCollapsed ? '☰' : '◀'}
-        </button>
-      </div>
 
-      <nav className="sidebar-nav">
-        <ul className="nav-list">
-          {menuItems.map((item) => (
-            <li key={item.id} className="nav-item">
-              <button
-                className={`nav-link ${activeMenu === item.id ? 'active' : ''}`}
-                onClick={() => handleMenuClick(item)}
-                title={isCollapsed ? item.title : ''}
-              >
-                <span className="nav-icon">{item.icon}</span>
-                {!isCollapsed && (
-                  <>
-                    <span className="nav-text">{item.title}</span>
-                    {item.submenu && (
-                      <span className={`submenu-arrow ${expandedMenus[item.id] ? 'expanded' : ''}`}>
-                        ▼
-                      </span>
-                    )}
-                  </>
+        <nav className="sidebar-nav">
+          <ul className="nav-list">
+            {menuItems.map((item) => (
+              <li key={item.id} className="nav-item">
+                <button
+                  className={`nav-link ${activeMenu === item.id ? 'active' : ''}`}
+                  onClick={() => handleMenuClick(item)}
+                  title={isCollapsed ? item.title : ''}
+                >
+                  <span className="nav-icon">{item.icon}</span>
+                  {!isCollapsed && (
+                    <>
+                      <span className="nav-text">{item.title}</span>
+                      {item.submenu && (
+                        <span className={`submenu-arrow ${expandedMenus[item.id] ? 'expanded' : ''}`}>
+                          ▼
+                        </span>
+                      )}
+                    </>
+                  )}
+                </button>
+                
+                {item.submenu && expandedMenus[item.id] && !isCollapsed && (
+                  <ul className="submenu">
+                    {item.submenu.map((subItem) => (
+                      <li key={subItem.id} className="submenu-item">
+                        <button
+                          className={`submenu-link ${activeMenu === subItem.id ? 'active' : ''}`}
+                          onClick={() => handleSubmenuClick(item.id, subItem)}
+                        >
+                          <span className="submenu-text">{subItem.title}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
                 )}
-              </button>
-              
-              {item.submenu && expandedMenus[item.id] && !isCollapsed && (
-                <ul className="submenu">
-                  {item.submenu.map((subItem) => (
-                    <li key={subItem.id} className="submenu-item">
-                      <button
-                        className={`submenu-link ${activeMenu === subItem.id ? 'active' : ''}`}
-                        onClick={() => handleSubmenuClick(item.id, subItem)}
-                      >
-                        <span className="submenu-text">{subItem.title}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </li>
-          ))}
-        </ul>
-      </nav>
+              </li>
+            ))}
+          </ul>
+        </nav>
 
-      <div className="sidebar-footer">
-        <div className="user-info">
-          <div className="user-avatar">👤</div>
+        <div className="sidebar-footer">
+          <div className="user-info">
+            <div className="user-avatar">👤</div>
+            {!isCollapsed && (
+              <div className="user-details">
+                <span className="username">
+                  {currentUser ? currentUser.username : 'User'}
+                </span>
+                <span className="user-role">
+                  {currentUser ? currentUser.email : 'user@example.com'}
+                </span>
+              </div>
+            )}
+          </div>
+          
           {!isCollapsed && (
-            <div className="user-details">
-              <span className="username">
-                {currentUser ? currentUser.username : 'User'}
-              </span>
-              <span className="user-role">
-                {currentUser ? currentUser.email : 'user@example.com'}
-              </span>
+            <div className="system-status">
+              <div className="status-indicator">
+                <span className="status-dot online"></span>
+                <span className="status-text">System Online</span>
+              </div>
             </div>
           )}
-        </div>
-        
-        {!isCollapsed && (
-          <div className="system-status">
-            <div className="status-indicator">
-              <span className="status-dot online"></span>
-              <span className="status-text">System Online</span>
-            </div>
-          </div>
-        )}
 
-        <button 
-          className="logout-btn"
-          onClick={handleLogout}
-          title={isCollapsed ? 'Logout' : ''}
-        >
-          <span className="logout-icon">🚪</span>
-          {!isCollapsed && <span className="logout-text">Logout</span>}
-        </button>
+          {isAuthenticated && (
+            <button 
+              className="logout-btn"
+              onClick={handleLogout}
+              title={isCollapsed ? 'Logout' : ''}
+            >
+              <span className="logout-icon">🚪</span>
+              {!isCollapsed && <span className="logout-text">Logout</span>}
+            </button>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

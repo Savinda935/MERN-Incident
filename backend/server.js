@@ -5,12 +5,14 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const incidentRoutes = require('./routes/incidentRoutes');
 const VcAmRoutes = require('./routes/Vc,AmRoutes');
+const authRoutes = require("./routes/authRoutes");
 
 dotenv.config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
 
 // Root route (to check if backend is working)
 app.get('/', (req, res) => {
@@ -28,6 +30,7 @@ mongoose.connect(process.env.MONGO_URI, {
 // Use routes
 app.use('/api/incidents', incidentRoutes);
 app.use('/api/vc_am', VcAmRoutes);
+app.use("/auth", authRoutes);
 
 // 404 handler for undefined routes
 app.use((req, res, next) => {

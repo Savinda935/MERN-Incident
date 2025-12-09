@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Sidebar from './Sidebar';
 import AddIncident from './AddIncident';
@@ -20,12 +21,38 @@ const MainLayout = () => {
   const [notificationCount, setNotificationCount] = useState(0);
   const [newUpdatesCount, setNewUpdatesCount] = useState(0);
   const [hasNewUpdatesPulse, setHasNewUpdatesPulse] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const incidentsSignatureRef = useRef('');
   const pulseTimeoutRef = useRef(null);
+  const navigate = useNavigate();
 
   const handleMenuChange = (menuId, path) => {
     setActiveMenu(menuId);
   };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("userEmail");
+    setCurrentUser(null);
+    navigate("/login");
+  };
+
+  useEffect(() => {
+    // Get user info from token (you can decode JWT or fetch from API)
+    const token = localStorage.getItem("token");
+    const email = localStorage.getItem("userEmail");
+    if (token) {
+      // Derive a simple display name from email if available
+      const username = email ? email.split("@")[0] : "User";
+      setCurrentUser({
+        username,
+        email: email || "user@example.com"
+      });
+    } else {
+      // If no token, redirect to login
+      navigate("/login");
+    }
+  }, [navigate]);
 
   useEffect(() => {
     let mounted = true;
@@ -134,6 +161,8 @@ const MainLayout = () => {
       <Sidebar 
         activeMenu={activeMenu} 
         onMenuChange={handleMenuChange}
+        currentUser={currentUser}
+        onLogout={handleLogout}
       />
       
       <div className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
