@@ -32,7 +32,8 @@ const Sidebar = ({ activeMenu, onMenuChange, currentUser, onLogout }) => {
         { id: 'availability-report', title: 'Availability Report (Chart)', path: '/reports/availability' },
         { id: 'downtime-report', title: 'Downtime Report (Availability)', path: '/reports/downtime' },
         { id: 'sector-summary', title: 'Sector Summary (WAN Firewall)', path: '/reports/sector-summary' },
-        { id: 'monthly-summary', title: 'Monthly Summary', path: '/reports/monthly' }
+        { id: 'monthly-summary', title: 'Monthly Summary', path: '/reports/monthly' },
+        { id: 'availability-growth', title: 'Availability Growth', path: '/reports/availability-growth' }
       ]
     },
     {

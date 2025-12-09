@@ -10,6 +10,7 @@ import Analytics from './Analytics';
 import AddIssue from './VcenterAvamar/AddIssue';
 import ViewIssue from './VcenterAvamar/ViewIssue';
 import SectorSummary from './SectorSummary';
+import AvailabilityGrowth from './AvailabilityGrowth';
 import '../css/MainLayout.css';
 
 const MainLayout = () => {
@@ -98,6 +99,8 @@ const MainLayout = () => {
           <h2>Monthly Summary</h2>
           <p>Monthly summary report will be displayed here.</p>
         </div>;
+      case 'availability-growth':
+        return <AvailabilityGrowth />;
       case 'analytics':
         return <Analytics />;
       case 'vcenter-avamar-add':
