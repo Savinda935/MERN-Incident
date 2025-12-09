@@ -275,9 +275,9 @@ const AvailabilityGrowth = () => {
   }
 
   return (
-    <div className="dashboard">
+    <div className="availability-growth">
       <div style={{ marginBottom: '30px' }}>
-        <h2 style={{ color: '#2c3e50', marginBottom: '20px' }}>Availability Growth Over Time</h2>
+        <h2 style={{ color: '#c7c412ff', marginBottom: '20px' }}>Availability Growth Over Time</h2>
         
         {/* Controls */}
         <div style={{
@@ -457,7 +457,7 @@ const AvailabilityGrowth = () => {
           marginTop: '20px',
           overflowX: 'auto'
         }}>
-          <h3 style={{ color: '#2c3e50', marginBottom: '15px' }}>Monthly Availability Details</h3>
+          <h3 style={{ color: '#c7c412ff', marginBottom: '15px' }}>Monthly Availability Details</h3>
           <table style={{
             width: '100%',
             borderCollapse: 'collapse'
@@ -465,21 +465,21 @@ const AvailabilityGrowth = () => {
             <thead>
               <tr style={{ backgroundColor: '#34495e' }}>
                 <th style={{
-                  color: '#ffffff',
+                  color: '#161515ff',
                   padding: '12px',
                   textAlign: 'left',
                   fontWeight: '600',
                   borderBottom: '2px solid #2c3e50'
                 }}>Month</th>
                 <th style={{
-                  color: '#ffffff',
+                  color: '#090909ff',
                   padding: '12px',
                   textAlign: 'left',
                   fontWeight: '600',
                   borderBottom: '2px solid #2c3e50'
                 }}>Average Availability (%)</th>
                 <th style={{
-                  color: '#ffffff',
+                  color: '#0e0e0eff',
                   padding: '12px',
                   textAlign: 'left',
                   fontWeight: '600',
