@@ -293,8 +293,8 @@ const Analytics = () => {
                 <tbody>
                   {metrics.topDowntime.map(row => (
                     <tr key={row.subValue}>
-                      <td>{row.subValue}</td>
-                      <td>{row.minutes}</td>
+                      <td style={{ color: '#000000' }}>{row.subValue}</td>
+                      <td style={{ color: '#000000' }}>{row.minutes}</td>
                     </tr>
                   ))}
                 </tbody>
