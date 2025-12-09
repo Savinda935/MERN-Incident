@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import ReactDOM from 'react-dom';
 import axios from 'axios';
 import '../css/Dashboard.css';
 
@@ -35,6 +36,7 @@ const Analytics = () => {
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hoveredCategory, setHoveredCategory] = useState(null);
+  const [tooltipInfo, setTooltipInfo] = useState({ visible: false, left: 0, top: 0, planned: 0, unplanned: 0 });
 
   // Reporting period - explicit date range
   const [reportStartDate, setReportStartDate] = useState(() => {
@@ -162,7 +164,7 @@ const Analytics = () => {
   return (
     <div className="dashboard">
       <div className="stats-grid">
-        <div className="stat-card">
+        <div className="stat-card" style={{ overflow: 'visible' }}>
           <div className="stat-icon">📅</div>
           <div className="stat-content">
             <h3>Date Range</h3>
@@ -173,15 +175,15 @@ const Analytics = () => {
                 value={reportStartDate} 
                 onChange={(e) => setReportStartDate(e.target.value)}
                 style={{
-                  padding: '8px 12px',
+                  padding: '6px 8px',
                   border: '2px solid #3498db',
-                  borderRadius: '6px',
-                  fontSize: '14px',
+                  borderRadius: '4px',
+                  fontSize: '13px',
                   fontWeight: '500',
                   color: '#2c3e50',
                   backgroundColor: '#ffffff',
                   cursor: 'pointer',
-                  minWidth: '150px'
+                  minWidth: '110px'
                 }}
               />
               <span style={{ color: '#7f8c8d', fontWeight: '600' }}>to</span>
@@ -190,24 +192,24 @@ const Analytics = () => {
                 value={reportEndDate} 
                 onChange={(e) => setReportEndDate(e.target.value)}
                 style={{
-                  padding: '8px 12px',
+                  padding: '6px 8px',
                   border: '2px solid #3498db',
-                  borderRadius: '6px',
-                  fontSize: '14px',
+                  borderRadius: '4px',
+                  fontSize: '13px',
                   fontWeight: '500',
                   color: '#2c3e50',
                   backgroundColor: '#ffffff',
                   cursor: 'pointer',
-                  minWidth: '150px'
+                  minWidth: '110px'
                 }}
               />
               <button 
                 disabled={!isRangeValid()}
                 style={{
-                  padding: '8px 16px',
+                  padding: '6px 10px',
                   border: 'none',
                   borderRadius: '6px',
-                  fontSize: '14px',
+                  fontSize: '13px',
                   fontWeight: '600',
                   backgroundColor: isRangeValid() ? '#3498db' : '#bdc3c7',
                   color: '#ffffff',
@@ -235,32 +237,28 @@ const Analytics = () => {
             key={item.category} 
             className="stat-card"
             style={{ position: 'relative', cursor: 'pointer' }}
-            onMouseEnter={() => setHoveredCategory(item.category)}
-            onMouseLeave={() => setHoveredCategory(null)}
-            onClick={() => setHoveredCategory(hoveredCategory === item.category ? null : item.category)}
+            onMouseEnter={(e) => {
+              setHoveredCategory(item.category);
+              try {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const left = rect.left + rect.width / 2 + (window.scrollX || window.pageXOffset || 0);
+                const top = rect.top + (window.scrollY || window.pageYOffset || 0);
+                setTooltipInfo({ visible: true, left, top, planned: item.planned, unplanned: item.unplanned });
+              } catch (err) {
+                setTooltipInfo({ visible: true, left: 0, top: 0, planned: item.planned, unplanned: item.unplanned });
+              }
+            }}
+            onMouseLeave={() => {
+              setHoveredCategory(null);
+              setTooltipInfo(prev => ({ ...prev, visible: false }));
+            }}
+            onClick={() => {
+              // toggle hover state
+              const isOpen = hoveredCategory === item.category;
+              setHoveredCategory(isOpen ? null : item.category);
+              setTooltipInfo(prev => ({ ...prev, visible: !isOpen }));
+            }}
           >
-            {hoveredCategory === item.category && (
-              <div 
-                style={{
-                  position: 'absolute',
-                  top: '-60px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  backgroundColor: '#2c3e50',
-                  color: '#fff',
-                  padding: '10px 16px',
-                  borderRadius: '8px',
-                  fontSize: '13px',
-                  fontWeight: '600',
-                  whiteSpace: 'nowrap',
-                  zIndex: 1000,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                  border: '2px solid #3498db'
-                }}
-              >
-                📌 Planned: <span style={{ color: '#27ae60' }}>{item.planned}</span> | Unplanned: <span style={{ color: '#e74c3c' }}>{item.unplanned}</span>
-              </div>
-            )}
             <div className="stat-icon">✅</div>
             <div className="stat-content">
               <h3>{item.category} Uptime</h3>
@@ -269,6 +267,31 @@ const Analytics = () => {
             </div>
           </div>
         ))}
+
+        {/* Portal tooltip rendered at document.body to avoid clipping by header/sidebar */}
+        {tooltipInfo.visible && typeof document !== 'undefined' && ReactDOM.createPortal(
+          <div
+            style={{
+              position: 'absolute',
+              left: tooltipInfo.left,
+              top: tooltipInfo.top,
+              transform: 'translate(-50%, -110%)',
+              backgroundColor: '#2c3e50',
+              color: '#fff',
+              padding: '10px 16px',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: '600',
+              whiteSpace: 'nowrap',
+              zIndex: 99999,
+              boxShadow: '0 6px 18px rgba(0,0,0,0.35)',
+              border: '2px solid #3498db'
+            }}
+          >
+            📌 Planned: <span style={{ color: '#27ae60' }}>{tooltipInfo.planned}</span> | Unplanned: <span style={{ color: '#e74c3c' }}>{tooltipInfo.unplanned}</span>
+          </div>,
+          document.body
+        )}
       </div>
 
       <div className="dashboard-grid">
