@@ -1,7 +1,8 @@
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import axios from 'axios';
 import '../../css/VcenterAvamar/ViewIssue.css';
+import html2canvas from 'html2canvas';
 
 const CATEGORIES = ['Vcenter', 'Avamar'];
 
@@ -72,6 +73,8 @@ const ViewIssue = () => {
         }
     };
 
+    const tableRefs = useRef({});
+
     const groupedIssues = useMemo(() => {
         return CATEGORIES.reduce((acc, label) => {
             const normalizedLabel = normalizeCategory(label);
@@ -82,9 +85,99 @@ const ViewIssue = () => {
         }, {});
     }, [issues]);
 
+    const downloadCSV = (title, data) => {
+        if (!data || data.length === 0) {
+            alert('No data to download.');
+            return;
+        }
+        const headers = ['Date', 'Host', 'Status', 'Remarks'];
+        const csvRows = [headers.join(',')];
+        data.forEach(row => {
+            const vals = [row.Date, row.host, row.status, (row.remarks || '').replace(/\n/g, ' ')];
+            const escaped = vals.map(v => '"' + String(v ?? '') .replace(/"/g, '""') + '"');
+            csvRows.push(escaped.join(','));
+        });
+        const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute('download', `${title.replace(/\s+/g, '_').toLowerCase()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const downloadImage = async (title, data) => {
+        if (!data || data.length === 0) {
+            alert('No data to export as image.');
+            return;
+        }
+
+        // Build a clean table DOM with only Date, Host, Status, Remarks
+        const temp = document.createElement('div');
+        temp.style.cssText = 'position:absolute;left:-9999px;top:-9999px;background:#fff;padding:20px;';
+        const h = document.createElement('h2');
+        h.textContent = title;
+        h.style.margin = '0 0 12px 0';
+        temp.appendChild(h);
+
+        const table = document.createElement('table');
+        table.style.cssText = 'width:100%;border-collapse:collapse;font-family:Segoe UI, Tahoma, Geneva, Verdana, sans-serif;';
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        ['Date', 'Host', 'Status', 'Remarks'].forEach(hdr => {
+            const th = document.createElement('th');
+            th.textContent = hdr;
+            th.style.cssText = 'text-align:left;padding:8px;border-bottom:1px solid #ddd;background:#f5f5f5;font-weight:700;';
+            headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+        data.forEach(row => {
+            const tr = document.createElement('tr');
+            const cells = [row.Date, row.host, row.status, (row.remarks || '').replace(/\n/g, ' ')];
+            cells.forEach(text => {
+                const td = document.createElement('td');
+                td.textContent = text ?? '';
+                td.style.cssText = 'padding:8px;border-bottom:1px solid #eee;';
+                tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+        temp.appendChild(table);
+        document.body.appendChild(temp);
+
+        try {
+            const canvas = await html2canvas(temp, { backgroundColor: '#fff', scale: 2 });
+            const link = document.createElement('a');
+            link.download = `${title.replace(/\s+/g, '_').toLowerCase()}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        } catch (err) {
+            console.error('Image export failed', err);
+            alert('Failed to export image.');
+        } finally {
+            document.body.removeChild(temp);
+        }
+    };
+
     const renderTable = (title, data) => (
-        <div style={{ marginBottom: '24px' }}>
-            <h2>{title}</h2>
+        <div style={{ marginBottom: '24px' }} ref={el => (tableRefs.current[title] = el)}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2>{title}</h2>
+                <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                        onClick={() => downloadCSV(title, data)}
+                        style={{ padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer', background: '#3498db', color: '#fff' }}
+                    >Download CSV</button>
+                    <button
+                        onClick={() => downloadImage(title, data)}
+                        style={{ padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer', background: '#28a745', color: '#fff' }}
+                    >Download Image</button>
+                </div>
+            </div>
             {data.length === 0 ? (
                 <p>No issues recorded.</p>
             ) : (

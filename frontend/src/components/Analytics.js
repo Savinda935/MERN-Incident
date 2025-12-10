@@ -305,7 +305,6 @@ const Analytics = () => {
           document.body
         )}
         {/* Category modal: Planned vs Unplanned */}
-        {/* Category modal: Planned vs Unplanned */}
         {showCategoryModal && typeof document !== 'undefined' && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 99999, backdropFilter: 'blur(4px)' }}>
             <div style={{ width: '90%', maxWidth: 1100, maxHeight: '85vh', background: 'linear-gradient(145deg, #1a1a2e 0%, #16213e 100%)', borderRadius: 16, padding: 28, boxShadow: '0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.1)', color: '#fff', display: 'flex', flexDirection: 'column' }}>
