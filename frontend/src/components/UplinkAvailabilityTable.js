@@ -871,6 +871,36 @@ const UplinkAvailabilityTable = () => {
     setShowModal(true);
   };
 
+  const formatDateTime = (dateStr) => {
+    if (!dateStr || dateStr === '-' ) return '-';
+    // If already a Date-like string, try to parse; otherwise just replace T with space
+    const maybeDate = new Date(dateStr);
+    if (!isNaN(maybeDate)) {
+      const date = maybeDate.toLocaleDateString();
+      const time = maybeDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return (
+        <>
+          <span className="date-part">{date}</span>{' '}
+          <span className="time-part">{time}</span>
+        </>
+      );
+    }
+    // Fallback: replace literal T with a space and wrap the time portion if present
+    const replaced = dateStr.replace('T', ' ');
+    const parts = replaced.split(' ');
+    if (parts.length >= 2) {
+      const date = parts[0];
+      const time = parts.slice(1).join(' ');
+      return (
+        <>
+          <span className="date-part">{date}</span>{' '}
+          <span className="time-part">{time}</span>
+        </>
+      );
+    }
+    return dateStr;
+  };
+
   return (
     <div className="uplink-container">
       <div className="table-header">
@@ -1044,7 +1074,6 @@ const UplinkAvailabilityTable = () => {
                   <th>Up Time Date & Time</th>
                   <th>Escalated Person</th>
                   <th>Remarks</th>
-                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -1052,19 +1081,11 @@ const UplinkAvailabilityTable = () => {
                   <tr key={idx} className={inc.downType === 'Planned' ? 'planned-row' : inc.downType === 'Unplanned' ? 'unplanned-row' : ''}>
                     <td>{inc.category}</td>
                     <td>{inc.subValue}</td>
-                    <td>{inc.downTimeDate}</td>
+                    <td>{formatDateTime(inc.downTimeDate)}</td>
                     <td>{inc.downType}</td>
-                    <td>{inc.upTimeDate}</td>
+                    <td>{formatDateTime(inc.upTimeDate)}</td>
                     <td>{inc.escalatedPerson}</td>
                     <td>{inc.remarks}</td>
-                    <td>
-                      <button
-                        className="action-btn"
-                        onClick={() => { setSelectedIncident(inc); setShowIncidentModal(true); }}
-                      >
-                        View
-                      </button>
-                    </td>
                   </tr>
                 ))}
               </tbody>
