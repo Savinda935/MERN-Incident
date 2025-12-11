@@ -109,7 +109,8 @@ const UplinkAvailabilityTable = () => {
       });
       let plannedDowntime = 0;
       let unplannedDowntime = 0;
-      let remarks = [];
+      // aggregate remarks by downType + date + reason so duplicates on same day are combined
+      const remarksMap = new Map();
       subValueIncidents.forEach(incident => {
         if (incident.downTimeDate && incident.upTimeDate && 
             incident.downTimeDate !== '-' && incident.upTimeDate !== '-') {
@@ -119,24 +120,29 @@ const UplinkAvailabilityTable = () => {
             const clippedDown = downTime < periodStart ? periodStart : downTime;
             const clippedUp = upTime > periodEnd ? periodEnd : upTime;
             const downtimeMinutes = Math.max(0, (clippedUp - clippedDown) / (1000 * 60));
-            if (incident.downType === 'Planned') {
-              plannedDowntime += downtimeMinutes;
-              if (incident.remarks && incident.remarks !== '-') {
-                remarks.push(`Planned : ${incident.remarks} (${Math.round(downtimeMinutes)} m)`);
-              } else {
-                remarks.push(`Planned : ${Math.round(downtimeMinutes)} m`);
-              }
-            } else if (incident.downType === 'Unplanned') {
-              unplannedDowntime += downtimeMinutes;
-              if (incident.remarks && incident.remarks !== '-') {
-                remarks.push(`Unplanned : ${incident.remarks} (${Math.round(downtimeMinutes)} m)`);
-              } else {
-                remarks.push(`Unplanned : ${Math.round(downtimeMinutes)} m`);
-              }
-            }
+            const type = incident.downType === 'Planned' ? 'Planned' : 'Unplanned';
+            if (type === 'Planned') plannedDowntime += downtimeMinutes; else unplannedDowntime += downtimeMinutes;
+
+            const dateKey = clippedDown.toISOString().slice(0,10); // YYYY-MM-DD
+            const reason = incident.remarks && incident.remarks !== '-' ? incident.remarks.trim() : '';
+            const mapKey = `${type}||${dateKey}||${reason}`;
+            const prev = remarksMap.get(mapKey) || 0;
+            remarksMap.set(mapKey, prev + downtimeMinutes);
           }
         }
       });
+
+      // build remarks array from aggregated map entries
+      let remarks = [];
+      for (const [key, minutes] of remarksMap.entries()) {
+        const [type, dateKey, reason] = key.split('||');
+        const minutesRounded = Math.round(minutes);
+        if (reason) {
+          remarks.push(`${type} : ${reason} (${minutesRounded} m)`);
+        } else {
+          remarks.push(`${type} : ${dateKey} (${minutesRounded} m)`);
+        }
+      }
       const totalDowntime = plannedDowntime + unplannedDowntime;
       const uptime = totalMinutesInMonth - totalDowntime;
       const uptimePercentage = ((uptime / totalMinutesInMonth) * 100).toFixed(2);
