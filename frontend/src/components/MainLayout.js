@@ -23,6 +23,7 @@ const MainLayout = () => {
   const [newUpdatesCount, setNewUpdatesCount] = useState(0);
   const [hasNewUpdatesPulse, setHasNewUpdatesPulse] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [systemAvailability, setSystemAvailability] = useState(100);
   const incidentsSignatureRef = useRef('');
   const pulseTimeoutRef = useRef(null);
   const navigate = useNavigate();
@@ -68,6 +69,29 @@ const MainLayout = () => {
           const downDate = incident.downTimeDate.slice(0, 10);
           return downDate === today && (!incident.upTimeDate || incident.upTimeDate === '-');
         }).length;
+
+        // Calculate average availability for current month
+        const firstOfMonth = new Date(new Date().setDate(1)).toISOString().slice(0, 10);
+        const endOfMonth = today;
+        const periodStart = new Date(`${firstOfMonth}T00:00:00`);
+        const periodEnd = new Date(`${endOfMonth}T23:59:59`);
+        const totalMinutesInPeriod = (periodEnd - periodStart) / (1000 * 60);
+
+        let totalDowntimeMinutes = 0;
+        incidents.forEach(inc => {
+          if (inc.downTimeDate && inc.upTimeDate && inc.downTimeDate !== '-' && inc.upTimeDate !== '-') {
+            const down = new Date(inc.downTimeDate);
+            const up = new Date(inc.upTimeDate);
+            if (!isNaN(down) && !isNaN(up) && up > down) {
+              const clippedDown = down < periodStart ? periodStart : down;
+              const clippedUp = up > periodEnd ? periodEnd : up;
+              totalDowntimeMinutes += (clippedUp - clippedDown) / (1000 * 60);
+            }
+          }
+        });
+
+        const uptime = Math.max(0, totalMinutesInPeriod - totalDowntimeMinutes);
+        const availabilityPercentage = totalMinutesInPeriod > 0 ? ((uptime / totalMinutesInPeriod) * 100) : 100;
         // Compute a lightweight signature of current incidents to detect changes
         const latestTs = incidents.reduce((max, inc) => {
           const tsDown = inc.downTimeDate && inc.downTimeDate !== '-' ? Date.parse(inc.downTimeDate) : 0;
@@ -79,6 +103,7 @@ const MainLayout = () => {
 
         if (!mounted) return;
         setActiveIncidentsCount(active);
+        setSystemAvailability(availabilityPercentage.toFixed(2));
 
         // If signature changed (and not the very first run), count as a new update
         if (incidentsSignatureRef.current && incidentsSignatureRef.current !== signature) {
@@ -192,7 +217,7 @@ const MainLayout = () => {
               </div>
               <div className="stat-item">
                 <span className="stat-label">System Health</span>
-                <span className="stat-value health-good">98.5%</span>
+                <span className={`stat-value ${parseFloat(systemAvailability) >= 95 ? 'health-good' : parseFloat(systemAvailability) >= 85 ? 'health-warning' : 'health-critical'}`}>{systemAvailability}%</span>
               </div>
             </div>
             
