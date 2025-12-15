@@ -73,25 +73,32 @@ const MainLayout = () => {
         // Calculate average availability for current month
         const firstOfMonth = new Date(new Date().setDate(1)).toISOString().slice(0, 10);
         const endOfMonth = today;
-        const periodStart = new Date(`${firstOfMonth}T00:00:00`);
-        const periodEnd = new Date(`${endOfMonth}T23:59:59`);
+        const periodStart = new Date(`${firstOfMonth}T00:00:00Z`).getTime();
+        const periodEnd = new Date(`${endOfMonth}T23:59:59Z`).getTime();
         const totalMinutesInPeriod = (periodEnd - periodStart) / (1000 * 60);
 
         let totalDowntimeMinutes = 0;
         incidents.forEach(inc => {
           if (inc.downTimeDate && inc.upTimeDate && inc.downTimeDate !== '-' && inc.upTimeDate !== '-') {
-            const down = new Date(inc.downTimeDate);
-            const up = new Date(inc.upTimeDate);
-            if (!isNaN(down) && !isNaN(up) && up > down) {
-              const clippedDown = down < periodStart ? periodStart : down;
-              const clippedUp = up > periodEnd ? periodEnd : up;
-              totalDowntimeMinutes += (clippedUp - clippedDown) / (1000 * 60);
+            try {
+              const down = new Date(inc.downTimeDate).getTime();
+              const up = new Date(inc.upTimeDate).getTime();
+              if (!isNaN(down) && !isNaN(up) && up > down) {
+                const clippedDown = Math.max(down, periodStart);
+                const clippedUp = Math.min(up, periodEnd);
+                if (clippedUp > clippedDown) {
+                  totalDowntimeMinutes += (clippedUp - clippedDown) / (1000 * 60);
+                }
+              }
+            } catch (e) {
+              // Skip incidents with invalid dates
             }
           }
         });
 
         const uptime = Math.max(0, totalMinutesInPeriod - totalDowntimeMinutes);
         const availabilityPercentage = totalMinutesInPeriod > 0 ? ((uptime / totalMinutesInPeriod) * 100) : 100;
+        const clampedAvailability = Math.min(100, Math.max(0, availabilityPercentage));
         // Compute a lightweight signature of current incidents to detect changes
         const latestTs = incidents.reduce((max, inc) => {
           const tsDown = inc.downTimeDate && inc.downTimeDate !== '-' ? Date.parse(inc.downTimeDate) : 0;
@@ -103,7 +110,7 @@ const MainLayout = () => {
 
         if (!mounted) return;
         setActiveIncidentsCount(active);
-        setSystemAvailability(availabilityPercentage.toFixed(2));
+        setSystemAvailability(clampedAvailability.toFixed(2));
 
         // If signature changed (and not the very first run), count as a new update
         if (incidentsSignatureRef.current && incidentsSignatureRef.current !== signature) {
