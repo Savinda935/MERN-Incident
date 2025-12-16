@@ -262,11 +262,81 @@ const ViewIncidents = () => {
     console.log('Total incidents before filtering:', incidents.length);
     
     const q = searchText.trim().toLowerCase();
+    const periodStart = new Date(`${startDate}T00:00:00`);
+    const periodEnd = new Date(`${endDate}T23:59:59`);
+
+    const parseDateSafe = (s) => {
+      if (!s || s === '-') return null;
+      try {
+        let str = String(s).trim();
+        str = str.replace(/\s+/g, 'T');
+        str = str.replace(/\//g, '-');
+        if (/^\d{4}-\d{2}-\d{2}$/.test(str)) str = `${str}T00:00:00`;
+        const d = new Date(str);
+        return isNaN(d.getTime()) ? null : d;
+      } catch (e) {
+        return null;
+      }
+    };
+
+    const objectIdTimestamp = (id) => {
+      if (!id || typeof id !== 'string') return null;
+      if (!/^[0-9a-fA-F]{24}$/.test(id)) return null;
+      try {
+        const seconds = parseInt(id.substring(0, 8), 16);
+        return new Date(seconds * 1000);
+      } catch (e) {
+        return null;
+      }
+    };
+
+    const overlapsRange = (incident) => {
+      const down = parseDateSafe(incident.downTimeDate);
+      const up = parseDateSafe(incident.upTimeDate);
+
+      // If both down/up are missing, try other date fields
+      if (!down && !up) {
+        const candidates = [
+          incident.createdAt,
+          incident.created_date,
+          incident.created,
+          incident.date,
+          incident.Date,
+          incident.addedAt,
+          incident.timestamp
+        ];
+        for (let c of candidates) {
+          const cd = parseDateSafe(c);
+          if (cd) return cd >= periodStart && cd <= periodEnd;
+        }
+
+        // Try MongoDB ObjectId timestamp if available
+        if (incident._id) {
+          const oidDate = objectIdTimestamp(incident._id);
+          if (oidDate) return oidDate >= periodStart && oidDate <= periodEnd;
+        }
+
+        // No date info -> include by default (so newly added without dates show up)
+        return true;
+      }
+
+      // Treat ongoing incidents (no up time) as up = now
+      const effectiveUp = up || new Date();
+
+      // Check overlap: incident.down <= periodEnd && effectiveUp >= periodStart
+      if (!down) return effectiveUp >= periodStart;
+      return down <= periodEnd && effectiveUp >= periodStart;
+    };
+
     const filtered = incidents.filter((incident) => {
       const matchesFilters = (!categoryFilter || incident.category === categoryFilter) &&
         (!subValueFilter || incident.subValue === subValueFilter) &&
         (!downTypeFilter || incident.downType === downTypeFilter);
       if (!matchesFilters) return false;
+
+      // Enforce date-range overlap
+      if (!overlapsRange(incident)) return false;
+
       if (!q) return true;
       const haystack = [
         incident.category || '',
@@ -425,8 +495,27 @@ const ViewIncidents = () => {
 
   function formatDuration(downTimeDate, upTimeDate) {
     if (!downTimeDate || !upTimeDate || downTimeDate === '-' || upTimeDate === '-') return '-';
-    const down = new Date(downTimeDate);
-    const up = new Date(upTimeDate);
+    
+    // Robust date parsing similar to parseDateSafe
+    const parseDate = (s) => {
+      if (!s || s === '-') return null;
+      try {
+        let str = String(s).trim();
+        str = str.replace(/\s+/g, 'T');
+        str = str.replace(/\//g, '-');
+        if (/^\d{4}-\d{2}-\d{2}$/.test(str)) str = `${str}T00:00:00`;
+        const d = new Date(str);
+        return isNaN(d.getTime()) ? null : d;
+      } catch (e) {
+        return null;
+      }
+    };
+    
+    const down = parseDate(downTimeDate);
+    const up = parseDate(upTimeDate);
+    
+    if (!down || !up) return '-';
+    
     let diffMs = up - down;
     if (isNaN(diffMs) || diffMs < 0) return '-';
     const totalMinutes = Math.floor(diffMs / (1000 * 60));
