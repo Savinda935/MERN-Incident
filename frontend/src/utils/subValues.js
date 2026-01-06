@@ -12,7 +12,7 @@ export const subValues = {
       "HAYCARB HO (DEANS RD) - P 81",
       "FIBER HO (FOSTER LN) - P 83",
       // "CONSUMER (FOSTER LANE) - P 84",
-      "Twe 1/6/0/25- Connected to Consumer",
+      "Twe 1/6/0/25 - Connected to Consumer",
       "AVENTURA (FOSTER LANE) - P 85",
       "AGRO (FOSTER LANE) - P 86",
       "DPL HO (DEANS RD) - P 87",  
