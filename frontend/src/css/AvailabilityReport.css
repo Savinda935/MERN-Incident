@@ -297,11 +297,11 @@
   }
   
   .legend-color.perfect {
-    background: rgba(40, 167, 69, 0.8);
+    background: #28a745cc;
   }
   
   .legend-color.downtime {
-    background: rgba(255, 193, 7, 0.8);
+    background: #ffc107cc;
   }
   
   /* Tables Section */

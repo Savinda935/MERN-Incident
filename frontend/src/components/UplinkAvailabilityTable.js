@@ -41,6 +41,8 @@ const UplinkAvailabilityTable = () => {
   const [modalIncidents, setModalIncidents] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [modalUplink, setModalUplink] = useState('');
+  const [selectedIncident, setSelectedIncident] = useState(null);
+  const [showIncidentModal, setShowIncidentModal] = useState(false);
   const modalTableRef = useRef(null);
   const [startDate, setStartDate] = useState(() => {
     const firstOfMonth = new Date(new Date().setDate(1)).toISOString().slice(0, 10);
@@ -107,7 +109,8 @@ const UplinkAvailabilityTable = () => {
       });
       let plannedDowntime = 0;
       let unplannedDowntime = 0;
-      let remarks = [];
+      // aggregate remarks by downType + date + reason so duplicates on same day are combined
+      const remarksMap = new Map();
       subValueIncidents.forEach(incident => {
         if (incident.downTimeDate && incident.upTimeDate && 
             incident.downTimeDate !== '-' && incident.upTimeDate !== '-') {
@@ -117,24 +120,29 @@ const UplinkAvailabilityTable = () => {
             const clippedDown = downTime < periodStart ? periodStart : downTime;
             const clippedUp = upTime > periodEnd ? periodEnd : upTime;
             const downtimeMinutes = Math.max(0, (clippedUp - clippedDown) / (1000 * 60));
-            if (incident.downType === 'Planned') {
-              plannedDowntime += downtimeMinutes;
-              if (incident.remarks && incident.remarks !== '-') {
-                remarks.push(`Planned : ${incident.remarks} (${Math.round(downtimeMinutes)} m)`);
-              } else {
-                remarks.push(`Planned : ${Math.round(downtimeMinutes)} m`);
-              }
-            } else if (incident.downType === 'Unplanned') {
-              unplannedDowntime += downtimeMinutes;
-              if (incident.remarks && incident.remarks !== '-') {
-                remarks.push(`Unplanned : ${incident.remarks} (${Math.round(downtimeMinutes)} m)`);
-              } else {
-                remarks.push(`Unplanned : ${Math.round(downtimeMinutes)} m`);
-              }
-            }
+            const type = incident.downType === 'Planned' ? 'Planned' : 'Unplanned';
+            if (type === 'Planned') plannedDowntime += downtimeMinutes; else unplannedDowntime += downtimeMinutes;
+
+            const dateKey = clippedDown.toISOString().slice(0,10); // YYYY-MM-DD
+            const reason = incident.remarks && incident.remarks !== '-' ? incident.remarks.trim() : '';
+            const mapKey = `${type}||${dateKey}||${reason}`;
+            const prev = remarksMap.get(mapKey) || 0;
+            remarksMap.set(mapKey, prev + downtimeMinutes);
           }
         }
       });
+
+      // build remarks array from aggregated map entries
+      let remarks = [];
+      for (const [key, minutes] of remarksMap.entries()) {
+        const [type, dateKey, reason] = key.split('||');
+        const minutesRounded = Math.round(minutes);
+        if (reason) {
+          remarks.push(`${type} : ${reason} (${minutesRounded} m)`);
+        } else {
+          remarks.push(`${type} : ${dateKey} (${minutesRounded} m)`);
+        }
+      }
       const totalDowntime = plannedDowntime + unplannedDowntime;
       const uptime = totalMinutesInMonth - totalDowntime;
       const uptimePercentage = ((uptime / totalMinutesInMonth) * 100).toFixed(2);
@@ -869,6 +877,36 @@ const UplinkAvailabilityTable = () => {
     setShowModal(true);
   };
 
+  const formatDateTime = (dateStr) => {
+    if (!dateStr || dateStr === '-' ) return '-';
+    // If already a Date-like string, try to parse; otherwise just replace T with space
+    const maybeDate = new Date(dateStr);
+    if (!isNaN(maybeDate)) {
+      const date = maybeDate.toLocaleDateString();
+      const time = maybeDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return (
+        <>
+          <span className="date-part">{date}</span>{' '}
+          <span className="time-part">{time}</span>
+        </>
+      );
+    }
+    // Fallback: replace literal T with a space and wrap the time portion if present
+    const replaced = dateStr.replace('T', ' ');
+    const parts = replaced.split(' ');
+    if (parts.length >= 2) {
+      const date = parts[0];
+      const time = parts.slice(1).join(' ');
+      return (
+        <>
+          <span className="date-part">{date}</span>{' '}
+          <span className="time-part">{time}</span>
+        </>
+      );
+    }
+    return dateStr;
+  };
+
   return (
     <div className="uplink-container">
       <div className="table-header">
@@ -1046,18 +1084,59 @@ const UplinkAvailabilityTable = () => {
               </thead>
               <tbody>
                 {modalIncidents.map((inc, idx) => (
-                  <tr key={idx}>
+                  <tr key={idx} className={inc.downType === 'Planned' ? 'planned-row' : inc.downType === 'Unplanned' ? 'unplanned-row' : ''}>
                     <td>{inc.category}</td>
                     <td>{inc.subValue}</td>
-                    <td>{inc.downTimeDate}</td>
+                    <td>{formatDateTime(inc.downTimeDate)}</td>
                     <td>{inc.downType}</td>
-                    <td>{inc.upTimeDate}</td>
+                    <td>{formatDateTime(inc.upTimeDate)}</td>
                     <td>{inc.escalatedPerson}</td>
                     <td>{inc.remarks}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Small modal to view single incident details and download CSV */}
+      {showIncidentModal && selectedIncident && (
+        <div className="modal">
+          <div className="modal-content">
+            <span className="close" onClick={() => { setShowIncidentModal(false); setSelectedIncident(null); }}>&times;</span>
+            <h3>Incident Details</h3>
+            <table className="modal-table small">
+              <tbody>
+                {Object.entries(selectedIncident).map(([k, v]) => (
+                  <tr key={k}>
+                    <td style={{ fontWeight: 700, padding: '8px 12px', width: '200px' }}>{k}</td>
+                    <td style={{ padding: '8px 12px' }}>{String(v)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+              <button
+                className="download-btn"
+                onClick={() => {
+                  const inc = selectedIncident;
+                  const headers = Object.keys(inc);
+                  const csv = [headers.join(','), headers.map(h => '"' + String(inc[h] ?? '') + '"').join(',')].join('\n');
+                  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                  const link = document.createElement('a');
+                  const url = URL.createObjectURL(blob);
+                  link.setAttribute('href', url);
+                  link.setAttribute('download', `incident-${(inc.id || inc._id || 'detail')}.csv`);
+                  link.style.visibility = 'hidden';
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }}
+              >
+                ⤓ Download CSV
+              </button>
+            </div>
           </div>
         </div>
       )}

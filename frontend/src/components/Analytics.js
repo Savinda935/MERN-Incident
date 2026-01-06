@@ -37,6 +37,8 @@ const Analytics = () => {
   const [loading, setLoading] = useState(true);
   const [hoveredCategory, setHoveredCategory] = useState(null);
   const [tooltipInfo, setTooltipInfo] = useState({ visible: false, left: 0, top: 0, planned: 0, unplanned: 0 });
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [modalData, setModalData] = useState({ category: '', planned: [], unplanned: [] });
 
   // Reporting period - explicit date range
   const [reportStartDate, setReportStartDate] = useState(() => {
@@ -253,10 +255,20 @@ const Analytics = () => {
               setTooltipInfo(prev => ({ ...prev, visible: false }));
             }}
             onClick={() => {
-              // toggle hover state
-              const isOpen = hoveredCategory === item.category;
-              setHoveredCategory(isOpen ? null : item.category);
-              setTooltipInfo(prev => ({ ...prev, visible: !isOpen }));
+              // open modal showing planned / unplanned incidents for this category
+              const start = new Date(reportStartDate);
+              const end = reportEndDate ? new Date(reportEndDate) : new Date();
+              const filtered = incidents.filter(i => {
+                if (i.category !== item.category) return false;
+                if (!i.downTimeDate || !i.upTimeDate) return false;
+                const down = new Date(i.downTimeDate);
+                const up = new Date(i.upTimeDate);
+                return (up >= start && down <= end);
+              });
+              const planned = filtered.filter(i => i.downType === 'Planned');
+              const unplanned = filtered.filter(i => i.downType === 'Unplanned');
+              setModalData({ category: item.category, planned, unplanned });
+              setShowCategoryModal(true);
             }}
           >
             <div className="stat-icon">✅</div>
@@ -291,6 +303,90 @@ const Analytics = () => {
             📌 Planned: <span style={{ color: '#27ae60' }}>{tooltipInfo.planned}</span> | Unplanned: <span style={{ color: '#e74c3c' }}>{tooltipInfo.unplanned}</span>
           </div>,
           document.body
+        )}
+        {/* Category modal: Planned vs Unplanned */}
+        {showCategoryModal && typeof document !== 'undefined' && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 99999, backdropFilter: 'blur(4px)' }}>
+            <div style={{ width: '90%', maxWidth: 1100, maxHeight: '85vh', background: 'linear-gradient(145deg, #1a1a2e 0%, #16213e 100%)', borderRadius: 16, padding: 28, boxShadow: '0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.1)', color: '#fff', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, paddingBottom: 16, borderBottom: '2px solid rgba(255,255,255,0.1)' }}>
+                <h3 style={{ margin: 0, fontSize: 24, fontWeight: 600, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                  Incidents for {modalData.category}
+                </h3>
+                <button onClick={() => setShowCategoryModal(false)} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', fontSize: 20, cursor: 'pointer', width: 36, height: 36, borderRadius: 8, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }} onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.target.style.background = 'rgba(255,255,255,0.1)'}>✕</button>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, overflow: 'auto', flex: 1 }}>
+                <div style={{ border: '1px solid rgba(102, 126, 234, 0.3)', borderRadius: 12, padding: 16, background: 'rgba(102, 126, 234, 0.05)', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+                  <h4 style={{ marginTop: 0, marginBottom: 16, fontSize: 18, color: '#667eea', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#667eea' }}></span>
+                    Planned
+                  </h4>
+                  {modalData.planned.length === 0 ? (
+                    <div style={{ color: '#888', fontStyle: 'italic', padding: 20, textAlign: 'center' }}>No planned incidents in this period.</div>
+                  ) : (
+                    <div style={{ maxHeight: 400, overflowY: 'auto', overflowX: 'hidden' }}>
+                      <style>{`
+                        .modal-scroll::-webkit-scrollbar { width: 8px; }
+                        .modal-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 4px; }
+                        .modal-scroll::-webkit-scrollbar-thumb { background: rgba(102, 126, 234, 0.5); border-radius: 4px; }
+                        .modal-scroll::-webkit-scrollbar-thumb:hover { background: rgba(102, 126, 234, 0.7); }
+                      `}</style>
+                      <table className="modal-scroll" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead style={{ position: 'sticky', top: 0, background: 'rgba(102, 126, 234, 0.15)', zIndex: 1 }}>
+                          <tr>
+                            <th style={{ textAlign: 'left', padding: '10px 12px', borderBottom: '2px solid rgba(102, 126, 234, 0.4)', color: '#667eea', fontWeight: 600, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Sub-Value</th>
+                            <th style={{ textAlign: 'left', padding: '10px 12px', borderBottom: '2px solid rgba(102, 126, 234, 0.4)', color: '#667eea', fontWeight: 600, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Down Time</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {modalData.planned.map((inc, i) => (
+                            <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(102, 126, 234, 0.1)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                              <td style={{ padding: '12px', color: '#000', fontSize: 14, fontWeight: 500 }}>{inc.subValue}</td>
+                              <td style={{ padding: '12px', color: '#000', fontSize: 13 }}>{new Date(inc.downTimeDate).toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ border: '1px solid rgba(244, 67, 54, 0.3)', borderRadius: 12, padding: 16, background: 'rgba(244, 67, 54, 0.05)', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+                  <h4 style={{ marginTop: 0, marginBottom: 16, fontSize: 18, color: '#f44336', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f44336' }}></span>
+                    Unplanned
+                  </h4>
+                  {modalData.unplanned.length === 0 ? (
+                    <div style={{ color: '#888', fontStyle: 'italic', padding: 20, textAlign: 'center' }}>No unplanned incidents in this period.</div>
+                  ) : (
+                    <div style={{ maxHeight: 400, overflowY: 'auto', overflowX: 'hidden' }}>
+                      <style>{`
+                        .modal-scroll-unplanned::-webkit-scrollbar { width: 8px; }
+                        .modal-scroll-unplanned::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 4px; }
+                        .modal-scroll-unplanned::-webkit-scrollbar-thumb { background: rgba(244, 67, 54, 0.5); border-radius: 4px; }
+                        .modal-scroll-unplanned::-webkit-scrollbar-thumb:hover { background: rgba(244, 67, 54, 0.7); }
+                      `}</style>
+                      <table className="modal-scroll-unplanned" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead style={{ position: 'sticky', top: 0, background: 'rgba(244, 67, 54, 0.15)', zIndex: 1 }}>
+                          <tr>
+                            <th style={{ textAlign: 'left', padding: '10px 12px', borderBottom: '2px solid rgba(244, 67, 54, 0.4)', color: '#f44336', fontWeight: 600, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Sub-Value</th>
+                            <th style={{ textAlign: 'left', padding: '10px 12px', borderBottom: '2px solid rgba(244, 67, 54, 0.4)', color: '#f44336', fontWeight: 600, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Down Time</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {modalData.unplanned.map((inc, i) => (
+                            <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(244, 67, 54, 0.1)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                              <td style={{ padding: '12px', color: '#000', fontSize: 14, fontWeight: 500 }}>{inc.subValue}</td>
+                              <td style={{ padding: '12px', color: '#000', fontSize: 13 }}>{new Date(inc.downTimeDate).toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </div>
 
