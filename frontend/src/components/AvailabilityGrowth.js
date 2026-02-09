@@ -54,7 +54,7 @@ const AvailabilityGrowth = () => {
   }, []);
 
   useEffect(() => {
-    storeDate('availabilityGrowthStartDate', reportStartDate);
+    storeDate('availabilityGrowthStarstDate', reportStartDate);
   }, [reportStartDate]);
 
   useEffect(() => {
