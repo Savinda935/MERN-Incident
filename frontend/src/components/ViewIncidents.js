@@ -258,19 +258,52 @@ const ViewIncidents = () => {
   };
 
   const filterIncidents = () => {
-    console.log('Filtering incidents with:', { categoryFilter, subValueFilter, downTypeFilter });
+    console.log('Filtering incidents with:', { categoryFilter, subValueFilter, downTypeFilter, startDate, endDate });
     console.log('Total incidents before filtering:', incidents.length);
     
     const q = searchText.trim().toLowerCase();
-    const periodStart = new Date(`${startDate}T00:00:00`);
-    const periodEnd = new Date(`${endDate}T23:59:59`);
+    
+    // Create period boundaries - ensure we cover the full days
+    // Parse date strings and set to start/end of day in local timezone
+    const startDateParts = startDate.split('-');
+    const endDateParts = endDate.split('-');
+    
+    // Start of startDate (00:00:00.000) in local timezone
+    const periodStart = new Date(
+      parseInt(startDateParts[0]), 
+      parseInt(startDateParts[1]) - 1, 
+      parseInt(startDateParts[2]), 
+      0, 0, 0, 0
+    );
+    
+    // End of endDate (23:59:59.999) in local timezone
+    const periodEnd = new Date(
+      parseInt(endDateParts[0]), 
+      parseInt(endDateParts[1]) - 1, 
+      parseInt(endDateParts[2]), 
+      23, 59, 59, 999
+    );
 
     const parseDateSafe = (s) => {
       if (!s || s === '-') return null;
       try {
         let str = String(s).trim();
+        // Handle datetime-local format (YYYY-MM-DDTHH:mm)
+        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(str)) {
+          // Already in correct format, use as is
+          const d = new Date(str);
+          return isNaN(d.getTime()) ? null : d;
+        }
+        // Handle date-only format (YYYY-MM-DD)
+        if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+          str = `${str}T00:00:00`;
+          const d = new Date(str);
+          return isNaN(d.getTime()) ? null : d;
+        }
+        // Handle other formats - replace spaces with T, slashes with dashes
         str = str.replace(/\s+/g, 'T');
         str = str.replace(/\//g, '-');
+        // If still date-only after replacement, add time
         if (/^\d{4}-\d{2}-\d{2}$/.test(str)) str = `${str}T00:00:00`;
         const d = new Date(str);
         return isNaN(d.getTime()) ? null : d;
@@ -307,7 +340,10 @@ const ViewIncidents = () => {
         ];
         for (let c of candidates) {
           const cd = parseDateSafe(c);
-          if (cd) return cd >= periodStart && cd <= periodEnd;
+          if (cd) {
+            // Check if the date falls within the period
+            return cd >= periodStart && cd <= periodEnd;
+          }
         }
 
         // Try MongoDB ObjectId timestamp if available
@@ -323,8 +359,15 @@ const ViewIncidents = () => {
       // Treat ongoing incidents (no up time) as up = now
       const effectiveUp = up || new Date();
 
-      // Check overlap: incident.down <= periodEnd && effectiveUp >= periodStart
-      if (!down) return effectiveUp >= periodStart;
+      // Check if incident overlaps with period:
+      // Incident overlaps if: down <= periodEnd AND effectiveUp >= periodStart
+      // This means the incident's time range intersects with the filter's time range
+      if (!down) {
+        // Only up time available - check if it's within period
+        return effectiveUp >= periodStart && effectiveUp <= periodEnd;
+      }
+      
+      // Both down and up times available - check for overlap
       return down <= periodEnd && effectiveUp >= periodStart;
     };
 

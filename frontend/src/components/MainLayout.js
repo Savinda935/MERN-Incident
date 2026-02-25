@@ -222,10 +222,10 @@ const MainLayout = () => {
                 <span className="stat-label">Active Incidents</span>
                 <span className="stat-value">{activeIncidentsCount}</span>
               </div>
-              <div className="stat-item">
+              {/* <div className="stat-item">
                 <span className="stat-label">System Health</span>
                 <span className={`stat-value ${parseFloat(systemAvailability) >= 95 ? 'health-good' : parseFloat(systemAvailability) >= 85 ? 'health-warning' : 'health-critical'}`}>{systemAvailability}%</span>
-              </div>
+              </div> */}
             </div>
             
             <div className="header-actions">

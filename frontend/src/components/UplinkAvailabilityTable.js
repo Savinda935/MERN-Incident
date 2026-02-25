@@ -916,6 +916,31 @@ const UplinkAvailabilityTable = () => {
           <span style={{ color: '#ffc107' }}>to</span>
           <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
           <input type="text" placeholder="Search uplink..." value={searchText} onChange={(e) => setSearchText(e.target.value)} />
+          <select 
+            value={searchText} 
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{
+              padding: '8px 12px',
+              backgroundColor: '#ffc107',
+              color: '#000',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              transition: 'all 0.3s ease',
+              fontSize: '14px'
+            }}
+          >
+            <option value="">-- Select Customer --</option>
+            <option value="Haycarb"> Haycarb</option>
+            <option value="ADV">ADVANTIS</option>
+            <option value="Agro">Agro</option>
+            <option value="Amaya">Amaya</option>
+            <option value="DPL">DPL</option>
+            <option value="Alumex">Alumex</option>
+            <option value="fiber">Fiber</option>
+            <option value="fabric">Fabric</option>
+          </select>
         </div>
       </div>
       {categories.map(cat => (
